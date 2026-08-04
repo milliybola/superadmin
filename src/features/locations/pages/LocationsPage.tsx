@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { MapPin, Search, ChevronLeft, ChevronRight, Inbox, Eye, Map as MapIcon } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { MapPin, Search, ChevronLeft, ChevronRight, Inbox, Eye, Pencil, Plus, Map as MapIcon } from 'lucide-react';
 import { locationsApi } from '../services/locationsApi';
 import type { Location, LocationType } from '../services/locationsApi';
-import { LOCATION_TYPE_META, LOCATION_TYPE_OPTIONS } from '../constants';
+import { LOCATION_TYPE_META } from '../constants';
+import { useLocationTypes } from '../hooks/useLocationTypes';
 import LocationDetailDialog from '../components/LocationDetailDialog';
 import LocationsMapDialog from '../components/LocationsMapDialog';
+import LocationFormDialog from '../components/LocationFormDialog';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ const LocationsPage: React.FC = () => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [count, setCount] = useState(0);
   const [pageSize, setPageSize] = useState<number | null>(null);
+  const [hasNext, setHasNext] = useState(false);
   const [page, setPage] = useState(1);
   const [locationType, setLocationType] = useState<LocationType | 'ALL'>('ALL');
   const [searchInput, setSearchInput] = useState('');
@@ -40,8 +43,13 @@ const LocationsPage: React.FC = () => {
   const [detailUuid, setDetailUuid] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [formUuid, setFormUuid] = useState<string | null>(null);
 
-  useEffect(() => {
+  const { types: locationTypes } = useLocationTypes();
+
+  const fetchLocations = useCallback(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -55,6 +63,7 @@ const LocationsPage: React.FC = () => {
         if (cancelled) return;
         setLocations(result.locations);
         setCount(result.count);
+        setHasNext(result.hasNext);
         if (page === 1) setPageSize(result.locations.length || null);
       })
       .catch((err) => {
@@ -71,6 +80,11 @@ const LocationsPage: React.FC = () => {
     };
   }, [locationType, search, page]);
 
+  useEffect(() => {
+    const cancel = fetchLocations();
+    return cancel;
+  }, [fetchLocations]);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
@@ -82,7 +96,23 @@ const LocationsPage: React.FC = () => {
     setDetailOpen(true);
   };
 
-  const hasNextPage = pageSize ? page * pageSize < count : false;
+  const handleCreate = () => {
+    setFormMode('create');
+    setFormUuid(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (uuid: string) => {
+    setFormMode('edit');
+    setFormUuid(uuid);
+    setFormOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setFormOpen(false);
+    fetchLocations();
+  };
+
   const rangeStart = pageSize ? (page - 1) * pageSize + 1 : 0;
   const rangeEnd = pageSize ? Math.min(page * pageSize, count) : locations.length;
 
@@ -101,10 +131,16 @@ const LocationsPage: React.FC = () => {
           </div>
         </div>
 
-        <Button variant="outline" onClick={() => setMapOpen(true)}>
-          <MapIcon className="h-4 w-4" />
-          Xarita
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setMapOpen(true)}>
+            <MapIcon className="h-4 w-4" />
+            Xarita
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4" />
+            Yangi joy
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -137,7 +173,8 @@ const LocationsPage: React.FC = () => {
                   <SelectValue placeholder="Joy turi" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOCATION_TYPE_OPTIONS.map((type) => (
+                  <SelectItem value="ALL">Barcha turlar</SelectItem>
+                  {locationTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
                   ))}
                 </SelectContent>
@@ -172,7 +209,7 @@ const LocationsPage: React.FC = () => {
                       <TableCell><Skeleton className="h-5 w-24 rounded-md" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-48" /></TableCell>
                       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto rounded-md" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-32 ml-auto rounded-md" /></TableCell>
                     </TableRow>
                   ))
                 ) : locations.length === 0 ? (
@@ -198,10 +235,16 @@ const LocationsPage: React.FC = () => {
                         {location.latitude}, {location.longitude}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetail(location.uuid)}>
-                          <Eye className="h-3.5 w-3.5" />
-                          Batafsil
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(location.uuid)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Tahrirlash
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetail(location.uuid)}>
+                            <Eye className="h-3.5 w-3.5" />
+                            Batafsil
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -228,7 +271,7 @@ const LocationsPage: React.FC = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => setPage((p) => p + 1)}
-                disabled={!hasNextPage || loading}
+                disabled={!hasNext || loading}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -239,6 +282,14 @@ const LocationsPage: React.FC = () => {
 
       <LocationDetailDialog uuid={detailUuid} open={detailOpen} onOpenChange={setDetailOpen} />
       <LocationsMapDialog open={mapOpen} onOpenChange={setMapOpen} />
+      <LocationFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        uuid={formUuid}
+        locationTypes={locationTypes}
+        onSuccess={handleFormSuccess}
+      />
     </div>
   );
 };

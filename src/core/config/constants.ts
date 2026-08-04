@@ -15,5 +15,6 @@ export const ENDPOINTS = {
   LOCATIONS: {
     BASE: 'locations/',
     DETAIL: (uuid: string) => `locations/${uuid}/`,
+    TYPES: 'locations/types/',
   },
 };
