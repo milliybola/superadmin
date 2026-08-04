@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, MapPin, Loader2 } from 'lucide-react';
 import { Map, Placemark, Polygon } from '@pbe/react-yandex-maps';
 import { locationsApi } from '../services/locationsApi';
@@ -111,8 +111,13 @@ const LocationFormDialog: React.FC<LocationFormDialogProps> = ({
   };
 
   // Reverse-geocodes the picked point via Nominatim and fills the address
-  // field — the admin can still freely overwrite it afterward.
-  const applyCoords = (newCoords: [number, number]) => {
+  // field — the admin can still freely overwrite it afterward. Stabilized
+  // with useCallback: the underlying ymaps bridge re-binds the map's click
+  // listener whenever the handler prop identity changes, so a handler that's
+  // recreated on every render (e.g. while the admin is typing elsewhere in
+  // the form) can drop a click that lands mid-rebind, making it feel like a
+  // single click doesn't register.
+  const applyCoords = useCallback((newCoords: [number, number]) => {
     setCoords(newCoords);
     setGeocoding(true);
     getNominalByCoords(newCoords[0], newCoords[1], 'uz')
@@ -120,16 +125,16 @@ const LocationFormDialog: React.FC<LocationFormDialogProps> = ({
         if (address) setForm((prev) => ({ ...prev, address }));
       })
       .finally(() => setGeocoding(false));
-  };
+  }, []);
 
   // ymaps event objects don't ship precise types with this package
-  const handleMapClick = (e: any) => {
+  const handleMapClick = useCallback((e: any) => {
     applyCoords(e.get('coords') as [number, number]);
-  };
+  }, [applyCoords]);
 
-  const handleDragEnd = (e: any) => {
+  const handleDragEnd = useCallback((e: any) => {
     applyCoords(e.get('target').geometry.getCoordinates() as [number, number]);
-  };
+  }, [applyCoords]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -299,6 +304,12 @@ const LocationFormDialog: React.FC<LocationFormDialogProps> = ({
                         strokeOpacity: 0.6,
                         fillOpacity: 1,
                       }}
+                      // A click on a GeoObject doesn't bubble up to the map's
+                      // own click event in the Yandex API, and this polygon
+                      // covers most of the visible map — without its own
+                      // handler, clicks inside the service area (the most
+                      // common case) would never register.
+                      onClick={handleMapClick}
                     />
                     {coords && (
                       <Placemark
