@@ -17,4 +17,11 @@ export const ENDPOINTS = {
     DETAIL: (uuid: string) => `locations/${uuid}/`,
     TYPES: 'locations/types/',
   },
+  NEIGHBORHOODS: {
+    BASE: 'locations/neighborhoods/',
+  },
+  PARTNERS: {
+    BASE: 'partner/',
+    DETAIL: (uuid: string) => `partner/${uuid}/`,
+  },
 };

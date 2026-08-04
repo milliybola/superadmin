@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MapPin, LogOut, Sun, Moon, ChevronsUpDown } from 'lucide-react';
+import { LayoutDashboard, MapPin, Store, LandPlot, LogOut, Sun, Moon, ChevronsUpDown } from 'lucide-react';
 import { STORAGE_KEYS } from '../config/constants';
 import {
   Sidebar,
@@ -30,6 +30,8 @@ import {
 const navItems = [
   { to: '/', label: 'Dashbord', icon: LayoutDashboard },
   { to: '/locations', label: 'Joy manzillari', icon: MapPin },
+  { to: '/partners', label: 'Hamkorlar', icon: Store },
+  { to: '/neighborhoods', label: "Xizmat ko'rsatish hududi", icon: LandPlot },
 ];
 
 const Layout: React.FC = () => {

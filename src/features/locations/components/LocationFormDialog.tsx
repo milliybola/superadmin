@@ -4,7 +4,7 @@ import { Map, Placemark, Polygon } from '@pbe/react-yandex-maps';
 import { locationsApi } from '../services/locationsApi';
 import type { LocationPayload, LocationTypeOption } from '../services/locationsApi';
 import { getNominalByCoords } from '../services/geocode';
-import { SERVICE_AREA_POLYGON } from '../serviceArea';
+import { SERVICE_AREA_POLYGON, SERVICE_AREA_CENTER } from '../serviceArea';
 import {
   Dialog,
   DialogContent,
@@ -34,11 +34,6 @@ interface LocationFormDialogProps {
   locationTypes: LocationTypeOption[];
   onSuccess: () => void;
 }
-
-const SERVICE_AREA_CENTER: [number, number] = [
-  SERVICE_AREA_POLYGON.reduce((sum, c) => sum + c[0], 0) / SERVICE_AREA_POLYGON.length,
-  SERVICE_AREA_POLYGON.reduce((sum, c) => sum + c[1], 0) / SERVICE_AREA_POLYGON.length,
-];
 
 interface FormState {
   name: string;

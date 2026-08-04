@@ -172,3 +172,8 @@ export const SERVICE_AREA: [number, number][] = [
 ];
 
 export const SERVICE_AREA_POLYGON: [number, number][] = SERVICE_AREA.map(([lng, lat]) => [lat, lng]);
+
+export const SERVICE_AREA_CENTER: [number, number] = [
+  SERVICE_AREA_POLYGON.reduce((sum, c) => sum + c[0], 0) / SERVICE_AREA_POLYGON.length,
+  SERVICE_AREA_POLYGON.reduce((sum, c) => sum + c[1], 0) / SERVICE_AREA_POLYGON.length,
+];
