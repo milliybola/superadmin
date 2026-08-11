@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Store, Search, Star, Eye, Inbox } from 'lucide-react';
 import { partnersApi } from '../services/partnersApi';
 import type { Partner } from '../services/partnersApi';
 import { PARTNER_TYPE_LABELS } from '../constants';
-import PartnerDetailDialog from '../components/PartnerDetailDialog';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,12 +21,11 @@ import {
 } from '@/components/ui/table';
 
 const PartnersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<Partner | null>(null);
-  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,11 +59,6 @@ const PartnersPage: React.FC = () => {
       p.phone.toLowerCase().includes(q)
     );
   }, [partners, search]);
-
-  const handleViewDetail = (partner: Partner) => {
-    setSelected(partner);
-    setDetailOpen(true);
-  };
 
   return (
     <div className="max-w-full mx-auto space-y-6">
@@ -174,7 +168,7 @@ const PartnersPage: React.FC = () => {
                       <TableCell className="text-muted-foreground max-w-xs truncate">{partner.address}</TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{partner.phone}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleViewDetail(partner)}>
+                        <Button variant="outline" size="sm" onClick={() => navigate(`/partners/${partner.uuid}`)}>
                           <Eye className="h-3.5 w-3.5" />
                           Batafsil
                         </Button>
@@ -187,8 +181,6 @@ const PartnersPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-
-      <PartnerDetailDialog partner={selected} open={detailOpen} onOpenChange={setDetailOpen} />
     </div>
   );
 };

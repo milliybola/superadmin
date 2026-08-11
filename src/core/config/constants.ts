@@ -23,5 +23,15 @@ export const ENDPOINTS = {
   PARTNERS: {
     BASE: 'partner/',
     DETAIL: (uuid: string) => `partner/${uuid}/`,
+    // These mirror the partner-facing app's own endpoints, which are scoped
+    // implicitly by the caller's Bearer token — there's no confirmed
+    // admin-side equivalent yet, so we call them with a `partner` filter as
+    // a best guess and degrade gracefully per-section if it 401/403/404s.
+    STATISTICS: 'partner/statistics/',
+    STAFF: 'partner/staff/',
+    FILIALS: 'partner/filials/',
+  },
+  PRODUCTS: {
+    BASE: 'products/',
   },
 };

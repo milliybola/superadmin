@@ -7,6 +7,7 @@ import LoginPage from './features/auth/pages/LoginPage';
 import DashboardPage from './features/dashboard/pages/DashboardPage';
 import LocationsPage from './features/locations/pages/LocationsPage';
 import PartnersPage from './features/partners/pages/PartnersPage';
+import PartnerDetailPage from './features/partners/pages/PartnerDetailPage';
 import NeighborhoodsPage from './features/neighborhoods/pages/NeighborhoodsPage';
 import { YANDEX_MAPS_API_KEY } from './core/config/constants';
 
@@ -27,6 +28,7 @@ const App: React.FC = () => {
             <Route index element={<DashboardPage />} />
             <Route path="locations" element={<LocationsPage />} />
             <Route path="partners" element={<PartnersPage />} />
+            <Route path="partners/:uuid" element={<PartnerDetailPage />} />
             <Route path="neighborhoods" element={<NeighborhoodsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

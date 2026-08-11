@@ -1,6 +1,16 @@
 import axios from 'axios';
 import { API_BASE_URL, STORAGE_KEYS } from '../config/constants';
 
+// Lets a specific request opt out of the global "401 -> log out" behavior
+// below — for best-effort calls to endpoints that may legitimately reject
+// the current session's scope (e.g. admin-probing a partner-only resource)
+// without that meaning the admin's own session has actually expired.
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    skipAuthRedirect?: boolean;
+  }
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -28,7 +38,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && error.response.status === 401 && !error.config?.skipAuthRedirect) {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
