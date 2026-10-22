@@ -8,8 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import SmsLoginForm from './SmsLoginForm';
 
 const LoginForm: React.FC = () => {
+  const [mode, setMode] = useState<'password' | 'sms'>('password');
   const [phone, setPhone] = useState('+998');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -116,6 +118,7 @@ const LoginForm: React.FC = () => {
         <CardDescription>Boshqaruv paneliga xush kelibsiz</CardDescription>
       </CardHeader>
       <CardContent>
+        {mode === 'sms' ? <SmsLoginForm /> : (
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <Alert variant="destructive">
@@ -171,6 +174,11 @@ const LoginForm: React.FC = () => {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Kirish'}
           </Button>
         </form>
+        )}
+        <button type="button" onClick={() => setMode(mode === 'sms' ? 'password' : 'sms')}
+          className="mt-4 w-full text-center text-sm text-muted-foreground transition hover:text-foreground">
+          {mode === 'sms' ? 'Parol bilan kirish' : 'SMS kod bilan kirish'}
+        </button>
       </CardContent>
     </Card>
   );

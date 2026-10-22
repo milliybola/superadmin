@@ -16,3 +16,7 @@ export const WEEKDAY_LABELS: { key: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat
   { key: 'sat', label: 'Shan' },
   { key: 'sun', label: 'Yak' },
 ];
+
+export const FILIAL_STATUSES: Record<string, string> = { ACTIVE: 'Faol', INACTIVE: 'Faol emas', CLOSED: 'Yopiq' };
+
+export const STAFF_ROLES: Record<string, string> = { manager: 'Menejer', waiter: 'Ofitsiant' };

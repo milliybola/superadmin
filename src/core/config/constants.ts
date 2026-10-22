@@ -1,4 +1,5 @@
-export const API_BASE_URL = 'https://mytizim.uz/';
+// Backend manzili: .env.development (lokal docker) / .env.production
+export const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'https://mytizim.uz/';
 
 export const YANDEX_MAPS_API_KEY = import.meta.env.VITE_YANDEX_MAPS_API_KEY || '';
 
@@ -11,6 +12,9 @@ export const STORAGE_KEYS = {
 export const ENDPOINTS = {
   AUTH: {
     LOGIN: 'auth/user/login/',
+    REFRESH: 'api/token/refresh/',
+    SEND_OTP: 'auth/user/send-otp/',
+    VERIFY_OTP: 'auth/user/verify-otp/',
   },
   LOCATIONS: {
     BASE: 'locations/',
@@ -33,5 +37,30 @@ export const ENDPOINTS = {
   },
   PRODUCTS: {
     BASE: 'products/',
+  },
+  /** Platforma administratori uchun alohida API (backend: api/superadmin) */
+  ADMIN: {
+    ME: 'superadmin/me/',
+    DASHBOARD: 'superadmin/dashboard/',
+    ORDERS: 'superadmin/orders/',
+    USERS: 'superadmin/users/',
+    COURIERS: 'superadmin/couriers/',
+    PARTNERS: 'superadmin/partners/',
+    FILIALS: 'superadmin/filials/',
+    STAFF: 'superadmin/staff/',
+    CUISINES: 'superadmin/cuisines/',
+    TARIFFS: 'superadmin/tariffs/',
+    CATEGORIES: 'superadmin/categories/',
+    PRODUCTS: 'superadmin/products/',
+    BANNERS: 'superadmin/banners/',
+    PROMOTIONS: 'superadmin/promotions/',
+    BROADCAST: 'superadmin/broadcast/',
+    PAYMENTS: 'superadmin/payments/',
+    MERCHANTS: 'superadmin/merchants/',
+    REPORTS: 'superadmin/reports/',
+    ADMINS: 'superadmin/admins/',
+    AUDIT: 'superadmin/audit/',
+    DISPATCH: 'superadmin/dispatch-config/',
+    SMS_STATUS: 'superadmin/sms/status/',
   },
 };

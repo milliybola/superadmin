@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, MapPin, Store, LandPlot, LogOut, Sun, Moon, ChevronsUpDown } from 'lucide-react';
+import { LogOut, Sun, Moon, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { STORAGE_KEYS } from '../config/constants';
+import { clearSession } from '../api/client';
+import { NAV_GROUPS } from '@/app/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +21,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,15 +30,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const navItems = [
-  { to: '/', label: 'Dashbord', icon: LayoutDashboard },
-  { to: '/locations', label: 'Joy manzillari', icon: MapPin },
-  { to: '/partners', label: 'Hamkorlar', icon: Store },
-  { to: '/neighborhoods', label: "Xizmat ko'rsatish hududi", icon: LandPlot },
-];
+const PageFallback = () => (
+  <div className="flex h-64 items-center justify-center text-muted-foreground">
+    <Loader2 className="size-6 animate-spin" />
+  </div>
+);
 
 const Layout: React.FC = () => {
-  const [admin] = useState<any>(() => {
+  const [admin] = useState<{ full_name?: string; email?: string; phone_number?: string } | null>(() => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ADMIN_DATA);
       return data ? JSON.parse(data) : null;
@@ -53,9 +55,7 @@ const Layout: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.ADMIN_DATA);
+    clearSession();
     navigate('/login');
   };
 
@@ -68,35 +68,37 @@ const Layout: React.FC = () => {
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary font-bold text-primary-foreground">
-              S
+              M
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-              <span className="truncate font-semibold">Superadmin</span>
-              <span className="truncate text-xs text-muted-foreground">Boshqaruv paneli</span>
+              <span className="truncate font-semibold">MilliyGo</span>
+              <span className="truncate text-xs text-muted-foreground">Superadmin paneli</span>
             </div>
           </div>
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Menyu</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {navItems.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <NavLink to={item.to} end={item.to === '/'}>
-                      {({ isActive }) => (
-                        <SidebarMenuButton isActive={isActive} tooltip={item.label}>
-                          <item.icon />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      )}
-                    </NavLink>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {NAV_GROUPS.map((group) => (
+            <SidebarGroup key={group.label}>
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.to}>
+                      <NavLink to={item.to} end={item.to === '/'}>
+                        {({ isActive }) => (
+                          <SidebarMenuButton isActive={isActive} tooltip={item.label}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        )}
+                      </NavLink>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
 
         <SidebarFooter>
@@ -110,7 +112,7 @@ const Layout: React.FC = () => {
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-medium">{displayName}</span>
-                      <span className="truncate text-xs text-muted-foreground">Superadmin</span>
+                      <span className="truncate text-xs text-muted-foreground">Administrator</span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
                   </SidebarMenuButton>
@@ -133,13 +135,20 @@ const Layout: React.FC = () => {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm font-medium text-muted-foreground">Boshqaruv paneli</span>
+          <div className="ml-auto">
+            <Button variant="ghost" size="icon" onClick={() => applyTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Mavzuni almashtirish">
+              {theme === 'light' ? <Moon className="size-4" /> : <Sun className="size-4" />}
+            </Button>
+          </div>
         </header>
-        <div className="flex-1 p-4 md:p-8">
-          <Outlet />
+        <div className="mx-auto w-full max-w-[1500px] flex-1 p-4 md:p-6 lg:p-8">
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
         </div>
       </SidebarInset>
     </SidebarProvider>

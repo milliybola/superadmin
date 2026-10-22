@@ -1,188 +1,98 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Store, Search, Star, Eye, Inbox } from 'lucide-react';
-import { partnersApi } from '../services/partnersApi';
-import type { Partner } from '../services/partnersApi';
-import { PARTNER_TYPE_LABELS } from '../constants';
-import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PageHeader } from '@/shared/components/PageHeader';
+import { DataTable, type Column } from '@/shared/components/DataTable';
+import { ChipTabs, FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters';
+import { Pill } from '@/shared/components/Pill';
+import { useListParams } from '@/shared/hooks/useListParams';
+import { formatDate, formatMoney, formatNumber } from '@/shared/lib/format';
+import { cuisineHooks, partnerHooks, type PartnerListItem } from '../api';
+import { PARTNER_TYPE_LABELS } from '../constants';
+import { PartnerFormDialog } from '../components/PartnerFormDialog';
 
-const PartnersPage: React.FC = () => {
+export function PartnerStatePills({ p }: { p: Pick<PartnerListItem, 'is_active' | 'is_open' | 'is_blocked'> }) {
+  if (p.is_blocked) return <Pill tone="danger">Bloklangan</Pill>;
+  if (!p.is_active) return <Pill tone="muted">Nofaol</Pill>;
+  return <Pill tone={p.is_open ? 'success' : 'warning'} dot>{p.is_open ? 'Ochiq' : 'Yopiq'}</Pill>;
+}
+
+const TYPE_TABS = [{ value: '', label: 'Hammasi' }, { value: 'RESTAURANT', label: 'Restoranlar' }, { value: 'SHOP', label: "Do'konlar" }];
+
+export default function PartnersPage() {
   const navigate = useNavigate();
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const { params, query, setFilter, setPage, setPageSize, setOrdering, reset, hasFilters } = useListParams({ ordering: '-created_at' });
+  const { data, isLoading, isFetching, error, refetch } = partnerHooks.useList(query);
+  const { data: cuisines } = cuisineHooks.useList({ page_size: 100 });
+  const f = params.filters;
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    partnersApi.getPartners()
-      .then((result) => {
-        if (!cancelled) setPartners(result);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setError("Hamkorlarni yuklashda xatolik yuz berdi.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return partners;
-    return partners.filter((p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.address.toLowerCase().includes(q) ||
-      p.phone.toLowerCase().includes(q)
-    );
-  }, [partners, search]);
+  const columns: Column<PartnerListItem>[] = [
+    {
+      key: 'name', header: 'Hamkor', sortKey: 'name',
+      cell: (p) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="size-9 rounded-lg border">
+            <AvatarImage src={p.logo ?? undefined} alt="" />
+            <AvatarFallback className="rounded-lg bg-primary/10 text-xs text-primary">{p.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="max-w-[220px] truncate font-medium">{p.name}</div>
+            <div className="max-w-[220px] truncate text-xs text-muted-foreground">{p.address}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'type', header: 'Turi', hideBelow: 'md',
+      cell: (p) => (
+        <div>
+          <div>{PARTNER_TYPE_LABELS[p.partner_type] ?? p.partner_type}</div>
+          {p.cuisines.length > 0 && <div className="max-w-[180px] truncate text-xs text-muted-foreground">{p.cuisines.map((c) => c.name).join(', ')}</div>}
+        </div>
+      ),
+    },
+    { key: 'state', header: 'Holat', cell: (p) => <PartnerStatePills p={p} /> },
+    { key: 'filials', header: 'Filial', align: 'right', hideBelow: 'lg', cell: (p) => <span className="tabular-nums">{p.filials_count}</span> },
+    { key: 'orders', header: 'Buyurtmalar', sortKey: 'orders_count', align: 'right', hideBelow: 'lg', cell: (p) => <span className="tabular-nums">{formatNumber(p.orders_count)}</span> },
+    { key: 'revenue', header: 'Tushum', sortKey: 'revenue', align: 'right', hideBelow: 'xl', cell: (p) => <span className="tabular-nums">{formatMoney(p.revenue)}</span> },
+    { key: 'rating', header: 'Reyting', sortKey: 'rating', align: 'right', hideBelow: 'md', cell: (p) => <span className="inline-flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" />{p.rating.toFixed(1)}</span> },
+    { key: 'created', header: "Qo'shilgan", sortKey: 'created_at', hideBelow: 'xl', cell: (p) => formatDate(p.created_at) },
+  ];
 
   return (
-    <div className="max-w-full mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/20">
-          <Store className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Hamkorlar</h1>
-          <p className="text-sm text-muted-foreground">Tizimga ulangan hamkorlar (restoran, do'kon) ro'yxati</p>
-        </div>
-      </div>
+    <>
+      <PageHeader title="Hamkorlar" description="Restoran va do'konlarni boshqarish"
+        actions={<Button onClick={() => setCreateOpen(true)}><Plus className="mr-2 size-4" />Yangi hamkor</Button>} />
 
-      <Card>
-        <CardHeader className="gap-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardDescription>Jami {partners.length} ta hamkor topildi</CardDescription>
+      <div className="mb-4"><ChipTabs value={f.partner_type ?? ''} onChange={(v) => setFilter('partner_type', v)} items={TYPE_TABS} /></div>
 
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nom, manzil yoki telefon bo'yicha qidirish"
-                className="pl-9 sm:w-80"
-              />
-            </div>
-          </div>
-        </CardHeader>
+      <FilterBar active={hasFilters} onReset={reset}>
+        <SearchInput value={f.search ?? ''} onChange={(v) => setFilter('search', v)} placeholder="Nom, telefon yoki manzil..." className="w-[280px]" />
+        <FilterSelect label="Oshxona" value={f.cuisine ?? ''} onChange={(v) => setFilter('cuisine', v)}
+          options={(cuisines?.results ?? []).map((c) => ({ value: c.uuid, label: c.name }))} />
+        <FilterSelect label="Blok" value={f.is_blocked ?? ''} onChange={(v) => setFilter('is_blocked', v)}
+          options={[{ value: 'true', label: 'Bloklangan' }, { value: 'false', label: 'Bloklanmagan' }]} />
+        <FilterSelect label="Hozir" value={f.is_open ?? ''} onChange={(v) => setFilter('is_open', v)}
+          options={[{ value: 'true', label: 'Ochiq' }, { value: 'false', label: 'Yopiq' }]} />
+        <FilterSelect label="Faollik" value={f.is_active ?? ''} onChange={(v) => setFilter('is_active', v)}
+          options={[{ value: 'true', label: 'Faol' }, { value: 'false', label: 'Nofaol' }]} />
+      </FilterBar>
 
-        <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+      <DataTable
+        columns={columns} rows={data?.results} rowKey={(p) => p.uuid} loading={isLoading || isFetching} error={error} onRetry={refetch}
+        onRowClick={(p) => navigate(`/partners/${p.uuid}`)}
+        ordering={params.ordering} onOrderingChange={setOrdering}
+        page={params.page} pageSize={params.pageSize} total={data?.count ?? 0} onPageChange={setPage} onPageSizeChange={setPageSize}
+        emptyTitle="Hamkorlar topilmadi"
+        emptyAction={<Button size="sm" onClick={() => setCreateOpen(true)}>Birinchi hamkorni qo'shish</Button>}
+      />
 
-          <div className="rounded-xl border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hamkor</TableHead>
-                  <TableHead>Turi</TableHead>
-                  <TableHead>Reyting</TableHead>
-                  <TableHead>Holati</TableHead>
-                  <TableHead>Manzil</TableHead>
-                  <TableHead>Telefon</TableHead>
-                  <TableHead className="text-right">Amallar</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-9 w-9 rounded-lg" />
-                          <Skeleton className="h-4 w-32" />
-                        </div>
-                      </TableCell>
-                      <TableCell><Skeleton className="h-5 w-20 rounded-md" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 rounded-md" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-28" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="h-8 w-24 ml-auto rounded-md" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <Inbox className="h-8 w-8" />
-                        <span>Hech qanday hamkor topilmadi.</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map((partner) => (
-                    <TableRow key={partner.uuid}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-9 w-9 rounded-lg border">
-                            <AvatarImage src={partner.logo ?? undefined} alt={partner.name} />
-                            <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs">
-                              {partner.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{partner.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{PARTNER_TYPE_LABELS[partner.partner_type] ?? partner.partner_type}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="inline-flex items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          {parseFloat(partner.rating).toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={partner.is_open ? 'success' : 'destructive'}>
-                          {partner.is_open ? 'Ochiq' : 'Yopiq'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground max-w-xs truncate">{partner.address}</TableCell>
-                      <TableCell className="font-mono text-xs text-muted-foreground">{partner.phone}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => navigate(`/partners/${partner.uuid}`)}>
-                          <Eye className="h-3.5 w-3.5" />
-                          Batafsil
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      {createOpen && (
+        <PartnerFormDialog open onOpenChange={setCreateOpen} onSaved={(p) => navigate(`/partners/${p.uuid}`)} />
+      )}
+    </>
   );
-};
-
-export default PartnersPage;
+}

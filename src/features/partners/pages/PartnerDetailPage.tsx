@@ -1,522 +1,178 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ChevronLeft, ChevronRight, Star, Phone, Mail, MapPin, Clock, Check, X, Banknote, Truck, Gift,
-  FileText, BarChart3, Users, Building2, Package, Inbox,
-} from 'lucide-react';
-import { Map, Placemark } from '@pbe/react-yandex-maps';
-import { partnersApi } from '../services/partnersApi';
-import type {
-  Partner, PartnerStatistics, PartnerStaffMember, PartnerFilial, Product,
-} from '../services/partnersApi';
-import { PARTNER_TYPE_LABELS, WEEKDAY_LABELS } from '../constants';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Ban, KeyRound, Pencil, Plus, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { ENDPOINTS } from '@/core/config/constants';
+import { PageHeader } from '@/shared/components/PageHeader';
+import { InfoRow, Section } from '@/shared/components/InfoRow';
+import { ErrorState } from '@/shared/components/State';
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
+import { Pill } from '@/shared/components/Pill';
+import { StatCard } from '@/shared/components/StatCard';
+import { formatMoney, formatNumber, formatPhone } from '@/shared/lib/format';
+import { Banknote, CheckCircle2, ShoppingBag, XCircle } from 'lucide-react';
+import { filialHooks, partnerHooks, staffHooks, type Filial, type Staff } from '../api';
+import { FILIAL_STATUSES, PARTNER_TYPE_LABELS, STAFF_ROLES } from '../constants';
+import { PartnerFormDialog } from '../components/PartnerFormDialog';
+import { CommissionCard } from '../components/CommissionCard';
+import { FilialDialog, OpeningHoursDialog } from '../components/FilialDialogs';
+import { PasswordDialog, StaffDialog } from '../components/StaffDialogs';
+import { PartnerStatePills } from './PartnersPage';
 
-const formatSum = (value: string | number | null | undefined) => {
-  if (value === null || value === undefined) return null;
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (!Number.isFinite(num)) return null;
-  return `${num.toLocaleString('uz-UZ')} so'm`;
-};
-
-const InfoField: React.FC<{ icon: React.ElementType; label: string; className?: string; children: React.ReactNode }> = ({
-  icon: Icon, label, className, children,
-}) => (
-  <div className={`rounded-xl border bg-muted/30 p-4 ${className ?? ''}`}>
-    <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </div>
-    <div className="text-sm">{children}</div>
-  </div>
-);
-
-const StatTile: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="rounded-xl border bg-muted/30 p-4">
-    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">{label}</div>
-    <div className="text-lg font-semibold">{value}</div>
-  </div>
-);
-
-// The three sections below call the same endpoints the partner-facing app
-// uses for its own logged-in session, filtered by `?partner=uuid` as a best
-// guess — there's no confirmed superadmin-scoped equivalent yet. Each loads
-// independently and degrades to a quiet "unavailable" state on any failure
-// (401/403/404/network) rather than blocking the rest of the page.
-type SectionStatus = 'loading' | 'ready' | 'unavailable';
-
-const SectionBody: React.FC<{ status: SectionStatus; children: React.ReactNode }> = ({ status, children }) => {
-  if (status === 'loading') {
-    return (
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
-      </div>
-    );
-  }
-  if (status === 'unavailable') {
-    return (
-      <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-        <Inbox className="h-6 w-6" />
-        <span className="text-sm">Bu bo'lim uchun hozircha ma'lumot mavjud emas.</span>
-      </div>
-    );
-  }
-  return <>{children}</>;
-};
-
-const NAV_ITEMS = [
-  { key: 'info', label: 'Hamkor haqida', icon: FileText },
-  { key: 'stats', label: 'Statistika', icon: BarChart3 },
-  { key: 'staff', label: 'Xodimlar', icon: Users },
-  { key: 'filials', label: 'Filiallar', icon: Building2 },
-  { key: 'catalog', label: 'Katalog', icon: Package },
-] as const;
-
-type SectionKey = typeof NAV_ITEMS[number]['key'];
-
-const SECTION_META: Record<SectionKey, { title: string; description: string }> = {
-  info: { title: 'Hamkor haqida', description: "Asosiy ma'lumotlar va profil" },
-  stats: { title: 'Statistika', description: "Buyurtma va daromad ko'rsatkichlari" },
-  staff: { title: 'Xodimlar', description: "Hamkorga tegishli xodimlar ro'yxati" },
-  filials: { title: 'Filiallar', description: 'Hamkorning filiallari' },
-  catalog: { title: 'Katalog', description: 'Hamkor mahsulotlari' },
-};
-
-const PartnerDetailPage: React.FC = () => {
-  const { uuid } = useParams<{ uuid: string }>();
-  const navigate = useNavigate();
-
-  const [activeSection, setActiveSection] = useState<SectionKey>('info');
-
-  const [partner, setPartner] = useState<Partner | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [statsStatus, setStatsStatus] = useState<SectionStatus>('loading');
-  const [stats, setStats] = useState<PartnerStatistics | null>(null);
-
-  const [staffStatus, setStaffStatus] = useState<SectionStatus>('loading');
-  const [staff, setStaff] = useState<PartnerStaffMember[]>([]);
-
-  const [filialsStatus, setFilialsStatus] = useState<SectionStatus>('loading');
-  const [filials, setFilials] = useState<PartnerFilial[]>([]);
-
-  const [productsStatus, setProductsStatus] = useState<SectionStatus>('loading');
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsCount, setProductsCount] = useState(0);
-  const [productsPage, setProductsPage] = useState(1);
-
-  useEffect(() => {
-    if (!uuid) return;
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    partnersApi.getPartner(uuid)
-      .then((result) => { if (!cancelled) setPartner(result); })
-      .catch((err) => {
-        if (cancelled) return;
-        console.error(err);
-        setError("Hamkor ma'lumotlarini yuklashda xatolik yuz berdi.");
-      })
-      .finally(() => { if (!cancelled) setLoading(false); });
-
-    return () => { cancelled = true; };
-  }, [uuid]);
-
-  useEffect(() => {
-    if (!uuid) return;
-    let cancelled = false;
-    setStatsStatus('loading');
-    partnersApi.getPartnerStatistics(uuid)
-      .then((result) => { if (!cancelled) { setStats(result); setStatsStatus('ready'); } })
-      .catch(() => { if (!cancelled) setStatsStatus('unavailable'); });
-    return () => { cancelled = true; };
-  }, [uuid]);
-
-  useEffect(() => {
-    if (!uuid) return;
-    let cancelled = false;
-    setStaffStatus('loading');
-    partnersApi.getPartnerStaff(uuid)
-      .then((result) => { if (!cancelled) { setStaff(result); setStaffStatus('ready'); } })
-      .catch(() => { if (!cancelled) setStaffStatus('unavailable'); });
-    return () => { cancelled = true; };
-  }, [uuid]);
-
-  useEffect(() => {
-    if (!uuid) return;
-    let cancelled = false;
-    setFilialsStatus('loading');
-    partnersApi.getPartnerFilials(uuid)
-      .then((result) => { if (!cancelled) { setFilials(result); setFilialsStatus('ready'); } })
-      .catch(() => { if (!cancelled) setFilialsStatus('unavailable'); });
-    return () => { cancelled = true; };
-  }, [uuid]);
-
-  useEffect(() => {
-    if (!uuid) return;
-    let cancelled = false;
-    setProductsStatus('loading');
-    partnersApi.getPartnerProducts(uuid, productsPage)
-      .then((result) => {
-        if (cancelled) return;
-        setProducts(result.products);
-        setProductsCount(result.count);
-        setProductsStatus('ready');
-      })
-      .catch(() => { if (!cancelled) setProductsStatus('unavailable'); });
-    return () => { cancelled = true; };
-  }, [uuid, productsPage]);
-
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Skeleton className="h-8 w-40" />
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
-          <Skeleton className="h-80 w-full rounded-2xl" />
-          <Skeleton className="h-96 w-full rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !partner) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-4">
-        <Button variant="outline" size="sm" onClick={() => navigate('/partners')}>
-          <ChevronLeft className="h-4 w-4" />
-          Hamkorlarga qaytish
-        </Button>
-        <Alert variant="destructive">
-          <AlertDescription>{error || 'Hamkor topilmadi.'}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  const hasCoords =
-    Number.isFinite(partner.location_lat) &&
-    Number.isFinite(partner.location_long) &&
-    !(partner.location_lat === 1 && partner.location_long === 1);
-
-  const initials = partner.name.slice(0, 2).toUpperCase();
-  const typeLabel = PARTNER_TYPE_LABELS[partner.partner_type] ?? partner.partner_type;
-  const overall = stats?.overall;
-  const productsTotalPages = productsCount > 0 && products.length > 0 ? Math.ceil(productsCount / (products.length || 1)) : 1;
-
-  const sectionDescription = activeSection === 'catalog' && productsStatus === 'ready'
-    ? `Jami ${productsCount} ta mahsulot`
-    : SECTION_META[activeSection].description;
+function FilialsTab({ partnerUuid }: { partnerUuid: string }) {
+  const { data, isLoading } = filialHooks.useList({ partner: partnerUuid, page_size: 100 });
+  const { remove } = filialHooks.useMutations();
+  const [edit, setEdit] = useState<Filial | 'new' | null>(null);
+  const [hours, setHours] = useState<Filial | null>(null);
+  const [del, setDel] = useState<Filial | null>(null);
 
   return (
-    <div className="max-w-full mx-auto space-y-6">
-
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          className="rounded-full shrink-0"
-          onClick={() => navigate('/partners')}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight truncate">
-          <span className="text-primary">{partner.name}</span> tafsilotlari
-        </h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
-        <Card className="lg:sticky lg:top-4">
-          <CardContent className="p-2">
-            <nav className="space-y-1">
-              {NAV_ITEMS.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setActiveSection(item.key)}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition cursor-pointer',
-                    activeSection === item.key
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                  )}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                </button>
-              ))}
-            </nav>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{SECTION_META[activeSection].title}</CardTitle>
-            <CardDescription>{sectionDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {activeSection === 'info' && (
-              <div className="space-y-4">
-                {partner.banner && (
-                  <div className="h-40 overflow-hidden rounded-xl bg-muted">
-                    <img src={partner.banner} alt="" className="h-full w-full object-cover" />
-                  </div>
-                )}
-
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-14 w-14 rounded-2xl border shrink-0">
-                    <AvatarImage src={partner.logo ?? undefined} alt={partner.name} />
-                    <AvatarFallback className="rounded-2xl bg-primary/10 text-primary">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 pt-0.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold truncate">{partner.name}</span>
-                      <Badge variant="secondary">{typeLabel}</Badge>
-                      <Badge variant={partner.is_open ? 'success' : 'destructive'}>
-                        {partner.is_open ? 'Ochiq' : 'Yopiq'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      {parseFloat(partner.rating).toFixed(2)} reyting
-                    </div>
-                  </div>
-                </div>
-
-                {partner.description && (
-                  <p className="text-sm text-muted-foreground">{partner.description}</p>
-                )}
-
-                {hasCoords && (
-                  <div className="overflow-hidden rounded-2xl border shadow-sm">
-                    <Map
-                      defaultState={{ center: [partner.location_lat as number, partner.location_long as number], zoom: 15 }}
-                      width="100%"
-                      height="220px"
-                    >
-                      <Placemark
-                        geometry={[partner.location_lat as number, partner.location_long as number]}
-                        options={{ preset: 'islands#blueDotIcon' }}
-                      />
-                    </Map>
-                  </div>
-                )}
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <InfoField icon={MapPin} label="Manzil" className="sm:col-span-2">
-                    {partner.address}
-                  </InfoField>
-                  <InfoField icon={Phone} label="Telefon">{partner.phone || '—'}</InfoField>
-                  <InfoField icon={Mail} label="Email">{partner.email || '—'}</InfoField>
-
-                  <InfoField icon={Clock} label="Ish vaqti" className="sm:col-span-2">
-                    {partner.opening_hours ? (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                          {WEEKDAY_LABELS.map(({ key, label }) => {
-                            const active = partner.opening_hours?.[key];
-                            return (
-                              <span
-                                key={key}
-                                className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium ${
-                                  active ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'
-                                }`}
-                              >
-                                {active ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                                {label}
-                              </span>
-                            );
-                          })}
-                        </div>
-                        <div className="font-mono text-xs text-muted-foreground">
-                          {partner.opening_hours.from_hour.slice(0, 5)} – {partner.opening_hours.to_hour.slice(0, 5)}
-                        </div>
-                      </div>
-                    ) : '—'}
-                  </InfoField>
-
-                  <InfoField icon={Banknote} label="Minimal buyurtma">{formatSum(partner.min_order_amount) ?? '—'}</InfoField>
-                  <InfoField icon={Banknote} label="Maksimal buyurtma">{formatSum(partner.max_order_amount) ?? '—'}</InfoField>
-                  <InfoField icon={Truck} label="Yetkazib berish narxi">{formatSum(partner.delivery_fee) ?? '—'}</InfoField>
-                  <InfoField icon={Gift} label="Bepul yetkazib berish chegarasi">{formatSum(partner.free_delivery_threshold) ?? '—'}</InfoField>
-                </div>
-
-                <Separator />
-                <div className="text-xs text-muted-foreground font-mono break-all">UUID: {partner.uuid}</div>
-              </div>
-            )}
-
-            {activeSection === 'stats' && (
-              <SectionBody status={statsStatus}>
-                {overall ? (
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <StatTile label="Jami buyurtmalar" value={overall.total_orders ?? '—'} />
-                    <StatTile label="Yetkazilgan" value={overall.delivered ?? '—'} />
-                    <StatTile label="Bekor qilingan" value={overall.cancelled ?? '—'} />
-                    <StatTile label="Jami daromad" value={formatSum(overall.total_revenue) ?? '—'} />
-                    <StatTile label="Yetkazib berish yig'indisi" value={formatSum(overall.total_delivery_fees) ?? '—'} />
-                    <StatTile label="Sof daromad" value={formatSum(overall.net_revenue) ?? '—'} />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                    <Inbox className="h-6 w-6" />
-                    <span className="text-sm">Statistika ma'lumotlari topilmadi.</span>
-                  </div>
-                )}
-              </SectionBody>
-            )}
-
-            {activeSection === 'staff' && (
-              <SectionBody status={staffStatus}>
-                {staff.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                    <Inbox className="h-6 w-6" />
-                    <span className="text-sm">Xodimlar topilmadi.</span>
-                  </div>
-                ) : (
-                  <ul className="divide-y rounded-xl border">
-                    {staff.map((member) => (
-                      <li key={member.uuid} className="flex items-center justify-between gap-3 px-4 py-3">
-                        <span className="font-medium">{member.full_name || member.name || '—'}</span>
-                        <div className="flex items-center gap-2">
-                          {member.role && <Badge variant="secondary">{member.role}</Badge>}
-                          <Badge variant={member.is_active ? 'success' : 'outline'}>
-                            {member.is_active ? 'Faol' : 'Nofaol'}
-                          </Badge>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </SectionBody>
-            )}
-
-            {activeSection === 'filials' && (
-              <SectionBody status={filialsStatus}>
-                {filials.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                    <Inbox className="h-6 w-6" />
-                    <span className="text-sm">Filiallar topilmadi.</span>
-                  </div>
-                ) : (
-                  <ul className="divide-y rounded-xl border">
-                    {filials.map((filial) => (
-                      <li key={filial.uuid} className="flex items-center justify-between gap-3 px-4 py-3">
-                        <div className="min-w-0">
-                          <div className="font-medium truncate">{filial.filial_name || '—'}</div>
-                          {filial.address && <div className="text-xs text-muted-foreground truncate">{filial.address}</div>}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {filial.is_main && <Badge variant="secondary">Asosiy</Badge>}
-                          <Badge variant={filial.filial_status === 'ACTIVE' ? 'success' : 'outline'}>
-                            {filial.filial_status || '—'}
-                          </Badge>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </SectionBody>
-            )}
-
-            {activeSection === 'catalog' && (
-              productsStatus === 'unavailable' ? (
-                <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
-                  <Inbox className="h-6 w-6" />
-                  <span className="text-sm">Bu bo'lim uchun hozircha ma'lumot mavjud emas.</span>
-                </div>
-              ) : (
-                <>
-                  <div className="rounded-xl border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nomi</TableHead>
-                          <TableHead>Narxi</TableHead>
-                          <TableHead>Holati</TableHead>
-                          <TableHead className="text-right">Mavjudligi</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {productsStatus === 'loading' ? (
-                          Array.from({ length: 4 }).map((_, i) => (
-                            <TableRow key={i}>
-                              <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                              <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                              <TableCell><Skeleton className="h-5 w-16 rounded-md" /></TableCell>
-                              <TableCell className="text-right"><Skeleton className="h-5 w-16 rounded-md ml-auto" /></TableCell>
-                            </TableRow>
-                          ))
-                        ) : products.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                              Mahsulotlar topilmadi.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          products.map((product) => (
-                            <TableRow key={product.uuid}>
-                              <TableCell className="font-medium">{product.name}</TableCell>
-                              <TableCell className="font-mono text-xs">{formatSum(product.price) ?? '—'}</TableCell>
-                              <TableCell>
-                                <Badge variant={product.is_active ? 'success' : 'outline'}>
-                                  {product.stock_status || (product.is_active ? 'Faol' : 'Nofaol')}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Badge variant={product.is_available ? 'success' : 'destructive'}>
-                                  {product.is_available ? 'Mavjud' : "Mavjud emas"}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {productsStatus === 'ready' && productsCount > products.length && (
-                    <div className="flex items-center justify-between pt-4">
-                      <span className="text-sm text-muted-foreground">{productsPage}-sahifa</span>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setProductsPage((p) => Math.max(1, p - 1))}
-                          disabled={productsPage <= 1}
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setProductsPage((p) => p + 1)}
-                          disabled={productsPage >= productsTotalPages}
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <Section title={`Filiallar (${data?.count ?? 0})`} action={<Button size="sm" onClick={() => setEdit('new')}><Plus className="mr-1.5 size-4" />Filial</Button>}>
+      {isLoading && <Skeleton className="my-3 h-16" />}
+      {data?.results.map((f) => (
+        <div key={f.uuid} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 font-medium">{f.filial_name}{f.is_main && <Pill tone="primary">Bosh</Pill>}
+              <Pill tone={f.filial_status === 'ACTIVE' ? 'success' : 'muted'}>{FILIAL_STATUSES[f.filial_status] ?? f.filial_status}</Pill></div>
+            <div className="text-xs text-muted-foreground">{f.address || 'Manzil kiritilmagan'}{f.manager_name && ` · Menejer: ${f.manager_name}`}</div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setHours(f)}>Ish vaqti</Button>
+            <Button variant="outline" size="sm" onClick={() => setEdit(f)}>Tahrirlash</Button>
+            {!f.is_main && <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDel(f)}>O'chirish</Button>}
+          </div>
+        </div>
+      ))}
+      {edit && <FilialDialog open partnerUuid={partnerUuid} filial={edit === 'new' ? undefined : edit} onOpenChange={() => setEdit(null)} />}
+      {hours && <OpeningHoursDialog open filial={hours} onOpenChange={() => setHours(null)} />}
+      <ConfirmDialog open={!!del} onOpenChange={() => setDel(null)} destructive confirmLabel="O'chirish" title="Filialni o'chirish"
+        description={`«${del?.filial_name}» o'chiriladi. Buyurtmalari bor filialni o'chirib bo'lmaydi.`}
+        onConfirm={() => remove.mutateAsync(del!.uuid)} />
+    </Section>
   );
-};
+}
 
-export default PartnerDetailPage;
+function StaffTab({ partnerUuid }: { partnerUuid: string }) {
+  const { data, isLoading } = staffHooks.useList({ partner: partnerUuid, page_size: 100 });
+  const { update } = staffHooks.useMutations();
+  const [edit, setEdit] = useState<Staff | 'new' | null>(null);
+  const [pw, setPw] = useState<Staff | null>(null);
+
+  return (
+    <Section title={`Xodimlar (${data?.count ?? 0})`} action={<Button size="sm" onClick={() => setEdit('new')}><Plus className="mr-1.5 size-4" />Xodim</Button>}>
+      {isLoading && <Skeleton className="my-3 h-16" />}
+      {data?.results.length === 0 && <p className="py-3 text-sm text-muted-foreground">Xodimlar yo'q.</p>}
+      {data?.results.map((s) => (
+        <div key={s.uuid} className="flex flex-wrap items-center justify-between gap-3 py-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 font-medium">{s.name}<Pill tone="info">{STAFF_ROLES[s.role] ?? s.role}</Pill></div>
+            <div className="text-xs text-muted-foreground">{formatPhone(s.phone)}{s.home_filial_name && ` · ${s.home_filial_name}`}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={s.is_active} onCheckedChange={(v) => update.mutate({ id: s.uuid, body: { is_active: v } })} aria-label="Faol" />
+            <Button variant="outline" size="sm" onClick={() => setPw(s)}><KeyRound className="mr-1.5 size-3.5" />Parol</Button>
+            <Button variant="outline" size="sm" onClick={() => setEdit(s)}>Tahrirlash</Button>
+          </div>
+        </div>
+      ))}
+      {edit && <StaffDialog open partnerUuid={partnerUuid} staff={edit === 'new' ? undefined : edit} onOpenChange={() => setEdit(null)} />}
+      {pw && <PasswordDialog open url={`${ENDPOINTS.ADMIN.STAFF}${pw.uuid}/set-password/`} title="Xodim parolini yangilash" subject={pw.name} onOpenChange={() => setPw(null)} />}
+    </Section>
+  );
+}
+
+export default function PartnerDetailPage() {
+  const { uuid = '' } = useParams();
+  const { data: p, isLoading, error, refetch } = partnerHooks.useDetail(uuid);
+  const { act, update } = partnerHooks.useMutations();
+  const [editOpen, setEditOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
+
+  if (error && !p) return <ErrorState onRetry={refetch} />;
+  if (isLoading || !p) return <div className="space-y-4"><Skeleton className="h-10 w-64" /><Skeleton className="h-72" /></div>;
+
+  return (
+    <>
+      <PageHeader
+        back={{ to: '/partners', label: 'Hamkorlar' }}
+        title={<span className="flex items-center gap-3">{p.name}<PartnerStatePills p={p} /></span>}
+        description={`${PARTNER_TYPE_LABELS[p.partner_type] ?? p.partner_type} · ${formatPhone(p.phone)}`}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 size-4" />Tahrirlash</Button>
+            <Button variant="outline" onClick={() => setPwOpen(true)}><KeyRound className="mr-2 size-4" />Parol</Button>
+            {p.is_blocked
+              ? <Button variant="outline" disabled={act.isPending} onClick={() => act.mutate({ id: p.uuid, name: 'unblock', message: 'Blok olib tashlandi' })}><ShieldCheck className="mr-2 size-4" />Blokdan chiqarish</Button>
+              : <Button variant="destructive" onClick={() => setBlockOpen(true)}><Ban className="mr-2 size-4" />Bloklash</Button>}
+          </>
+        }
+      />
+
+      <Tabs defaultValue="overview">
+        <TabsList className="mb-4">
+          <TabsTrigger value="overview">Umumiy</TabsTrigger>
+          <TabsTrigger value="filials">Filiallar ({p.filials.length})</TabsTrigger>
+          <TabsTrigger value="staff">Xodimlar ({p.staff_count})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard icon={ShoppingBag} label="Buyurtmalar" value={formatNumber(p.stats.orders)} />
+            <StatCard icon={CheckCircle2} tone="success" label="Yetkazilgan" value={formatNumber(p.stats.delivered)} />
+            <StatCard icon={XCircle} tone="danger" label="Bekor qilingan" value={formatNumber(p.stats.cancelled)} />
+            <StatCard icon={Banknote} tone="info" label="Tushum" value={formatMoney(p.stats.revenue)} />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Section title="Asosiy ma'lumotlar">
+              <InfoRow label="Manzil">{p.address}</InfoRow>
+              <InfoRow label="Email">{p.email ?? '—'}</InfoRow>
+              <InfoRow label="Egasi">{p.owner ? <Link className="text-primary hover:underline" to={`/users/${p.owner.uuid}`}>{p.owner.full_name || p.owner.phone}</Link> : '—'}</InfoRow>
+              <InfoRow label="Reyting">{p.rating.toFixed(1)}</InfoRow>
+              <InfoRow label="Koordinata">{p.location_lat}, {p.location_long}</InfoRow>
+              <InfoRow label="Telegram guruh">{p.telegram_group_id ?? '—'}</InfoRow>
+              {p.cuisines.length > 0 && <InfoRow label="Oshxona turlari">{p.cuisines.map((c) => c.name).join(', ')}</InfoRow>}
+              <InfoRow label="Hozir ochiq">
+                <Switch checked={p.is_open} disabled={p.is_blocked || update.isPending} onCheckedChange={(v) => update.mutate({ id: p.uuid, body: { is_open: v } })} aria-label="Ochiq" />
+              </InfoRow>
+            </Section>
+
+            <div className="space-y-4">
+              <Section title="Yetkazish shartlari">
+                <InfoRow label="Yetkazish narxi">{formatMoney(p.delivery_fee)}</InfoRow>
+                <InfoRow label="Yetkazish vaqti">{p.delivery_time_minutes} daqiqa</InfoRow>
+                <InfoRow label="Minimal buyurtma">{formatMoney(p.min_order_amount)}</InfoRow>
+                <InfoRow label="Maksimal buyurtma">{p.max_order_amount ? formatMoney(p.max_order_amount) : 'Cheklov yo\'q'}</InfoRow>
+                <InfoRow label="Bepul yetkazish">{p.free_delivery_threshold ? `${formatMoney(p.free_delivery_threshold)} dan` : 'Yo\'q'}</InfoRow>
+              </Section>
+              <Section title="Tarif" action={<Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>O'zgartirish</Button>}>
+                <InfoRow label="Tarif">
+                  {p.tariff_info.restricted ? p.tariff_info.name : <span className="text-muted-foreground">Cheklovsiz (tarifsiz)</span>}
+                </InfoRow>
+                <InfoRow label="Yetkazib berish"><Pill tone="success">Bor</Pill></InfoRow>
+                <InfoRow label="Olib ketish"><Pill tone={p.tariff_info.allow_pickup ? 'success' : 'muted'}>{p.tariff_info.allow_pickup ? 'Bor' : "Yo'q"}</Pill></InfoRow>
+                <InfoRow label="Zal va stollar"><Pill tone={p.tariff_info.allow_dine_in ? 'success' : 'muted'}>{p.tariff_info.allow_dine_in ? 'Bor' : "Yo'q"}</Pill></InfoRow>
+                <InfoRow label="Filiallar">{p.tariff_info.usage.filials} / {p.tariff_info.max_filials ?? '∞'}</InfoRow>
+                {p.tariff_info.allow_dine_in && <InfoRow label="Stollar">{p.tariff_info.usage.tables} / {p.tariff_info.max_tables ?? '∞'}</InfoRow>}
+              </Section>
+              <CommissionCard partnerUuid={p.uuid} />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="filials"><FilialsTab partnerUuid={p.uuid} /></TabsContent>
+        <TabsContent value="staff"><StaffTab partnerUuid={p.uuid} /></TabsContent>
+      </Tabs>
+
+      {editOpen && <PartnerFormDialog open partner={p} onOpenChange={setEditOpen} />}
+      {pwOpen && <PasswordDialog open url={`${ENDPOINTS.ADMIN.PARTNERS}${p.uuid}/set-password/`} title="Hamkor parolini yangilash" subject={p.name} onOpenChange={setPwOpen} />}
+      <ConfirmDialog open={blockOpen} onOpenChange={setBlockOpen} destructive confirmLabel="Bloklash" title="Hamkorni bloklash"
+        description={`«${p.name}» yopiladi va mijozlarga ko'rinmaydi.`}
+        onConfirm={() => act.mutateAsync({ id: p.uuid, name: 'block', message: 'Hamkor bloklandi' })} />
+    </>
+  );
+}
