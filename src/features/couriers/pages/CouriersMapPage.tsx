@@ -16,11 +16,29 @@ import { COURIER_STATUSES, TRANSPORT_TYPES } from '../constants';
 import { useCouriersMap } from '../hooks';
 
 const TASHKENT: [number, number] = [41.311081, 69.240562];
-const PRESET: Record<string, string> = {
-  available: 'islands#greenCircleDotIcon',
-  busy: 'islands#orangeCircleDotIcon',
-  break: 'islands#blueCircleDotIcon',
+
+const TRANSPORT_EMOJI: Record<string, string> = {
+  bike: '🚲', scooter: '🛵', motorcycle: '🏍️', car: '🚗', walk: '🚶', van: '🚐', truck: '🚚',
 };
+const STATUS_COLOR: Record<string, string> = { available: '#10b981', busy: '#f97316', break: '#3b82f6' };
+
+const iconCache = new Map<string, string>();
+/** Kuryer transportiga mos belgi: rangli (status) doira ichida transport emojisi. */
+function courierIcon(transport: string | null | undefined, status: string): string {
+  const key = `${transport ?? ''}|${status}`;
+  let url = iconCache.get(key);
+  if (!url) {
+    const color = STATUS_COLOR[status] ?? '#6b7280';
+    const emoji = TRANSPORT_EMOJI[transport ?? ''] ?? '📍';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="52" viewBox="0 0 44 52">`
+      + `<path d="M22 50 L12 36 h20 z" fill="${color}"/>`
+      + `<circle cx="22" cy="22" r="19" fill="#fff" stroke="${color}" stroke-width="4"/>`
+      + `<text x="22" y="30" font-size="22" text-anchor="middle" font-family="Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif">${emoji}</text></svg>`;
+    url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    iconCache.set(key, url);
+  }
+  return url;
+}
 
 type Selection = { kind: 'courier'; uuid: string } | { kind: 'order'; uuid: string } | null;
 
@@ -69,8 +87,13 @@ export default function CouriersMapPage() {
             <YandexMap state={{ center, zoom: focus ? 15 : 12 }} width="100%" height="600px" modules={['geoObject.addon.balloon', 'geoObject.addon.hint']}>
               {couriers.map((c) => (
                 <Placemark key={c.uuid} geometry={[c.latitude, c.longitude]}
-                  properties={{ hintContent: c.name, balloonContent: `<b>${c.name}</b><br/>${formatPhone(c.phone)}<br/>${COURIER_STATUSES[c.status]?.label ?? c.status}${c.order ? `<br/>Buyurtma ${c.order.number ?? ''}` : ''}` }}
-                  options={{ preset: PRESET[c.status] ?? 'islands#grayCircleDotIcon' }}
+                  properties={{ hintContent: c.name, balloonContent: `<b>${c.name}</b><br/>${formatPhone(c.phone)}<br/>${c.transport ? `${TRANSPORT_EMOJI[c.transport] ?? ''} ${TRANSPORT_TYPES[c.transport] ?? c.transport} · ` : ''}${COURIER_STATUSES[c.status]?.label ?? c.status}${c.order ? `<br/>Buyurtma ${c.order.number ?? ''}` : ''}` }}
+                  options={{
+                    iconLayout: 'default#image',
+                    iconImageHref: courierIcon(c.transport, c.status),
+                    iconImageSize: [44, 52],
+                    iconImageOffset: [-22, -50],
+                  }}
                   onClick={() => setSelected({ kind: 'courier', uuid: c.uuid })} />
               ))}
               {orders.filter((o) => o.latitude != null && o.longitude != null).map((o) => (
