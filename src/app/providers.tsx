@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster, toast } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { StageProvider } from './stage';
 import { getErrorMessage } from '@/shared/lib/errors';
 
 const queryClient = new QueryClient({
@@ -27,7 +28,9 @@ const queryClient = new QueryClient({
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+      <StageProvider>
+        <TooltipProvider delayDuration={200}>{children}</TooltipProvider>
+      </StageProvider>
       <Toaster richColors closeButton position="top-right" theme="system" />
     </QueryClientProvider>
   );

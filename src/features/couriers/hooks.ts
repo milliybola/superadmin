@@ -1,13 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { ListQuery } from '@/shared/api/types';
-import { couriersApi, type CourierDetail } from './api';
+import { couriersApi, type CourierDetail, type CourierScope } from './api';
 
 export const courierKeys = {
   list: (query: ListQuery) => ['couriers', 'list', query] as const,
   detail: (uuid: string) => ['couriers', 'detail', uuid] as const,
-  summary: ['couriers', 'summary'] as const,
-  map: ['couriers', 'map'] as const,
+  summary: (scope?: CourierScope) => ['couriers', 'summary', scope ?? {}] as const,
+  map: (scope?: CourierScope) => ['couriers', 'map', scope ?? {}] as const,
 };
 
 export const useCouriers = (query: ListQuery, enabled = true) =>
@@ -22,12 +22,12 @@ export const useCouriers = (query: ListQuery, enabled = true) =>
 export const useCourier = (uuid: string) =>
   useQuery({ queryKey: courierKeys.detail(uuid), queryFn: () => couriersApi.get(uuid), refetchInterval: 30_000 });
 
-export const useCouriersSummary = () =>
-  useQuery({ queryKey: courierKeys.summary, queryFn: couriersApi.summary, refetchInterval: 30_000 });
+export const useCouriersSummary = (scope?: CourierScope) =>
+  useQuery({ queryKey: courierKeys.summary(scope), queryFn: () => couriersApi.summary(scope), refetchInterval: 30_000 });
 
 /** Onlayn kuryerlar xaritasi: har 15 soniyada yangilanadi */
-export const useCouriersMap = () =>
-  useQuery({ queryKey: courierKeys.map, queryFn: couriersApi.map, refetchInterval: 15_000 });
+export const useCouriersMap = (scope?: CourierScope) =>
+  useQuery({ queryKey: courierKeys.map(scope), queryFn: () => couriersApi.map(scope), refetchInterval: 15_000 });
 
 /** Kuryer ustidagi barcha amallar. Javob (yangilangan profil) keshga yoziladi, ro'yxatlar yangilanadi. */
 export function useCourierActions(uuid: string) {
@@ -35,7 +35,7 @@ export function useCourierActions(uuid: string) {
   const done = (message: string) => (data: CourierDetail) => {
     qc.setQueryData(courierKeys.detail(uuid), data);
     qc.invalidateQueries({ queryKey: ['couriers', 'list'] });
-    qc.invalidateQueries({ queryKey: courierKeys.summary });
+    qc.invalidateQueries({ queryKey: ['couriers', 'summary'] });
     toast.success(message);
   };
   return {

@@ -13,6 +13,7 @@ import { formatPhone, timeAgo } from '@/shared/lib/format';
 import { orderStatusLabel } from '@/features/orders/constants';
 import type { MapCourier, WaitingOrder } from '../api';
 import { COURIER_STATUSES, TRANSPORT_TYPES } from '../constants';
+import { useStage } from '@/app/stage';
 import { useCouriersMap } from '../hooks';
 
 const TASHKENT: [number, number] = [41.311081, 69.240562];
@@ -44,7 +45,8 @@ type Selection = { kind: 'courier'; uuid: string } | { kind: 'order'; uuid: stri
 
 /** Jonli xarita: onlayn kuryerlar (15 soniyada yangilanadi) va kuryer kutayotgan buyurtmalar. */
 export default function CouriersMapPage() {
-  const { data, isLoading, error, refetch, dataUpdatedAt } = useCouriersMap();
+  const { stage } = useStage();
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useCouriersMap(stage === 1 ? { courier_type: 'PARTNER' } : undefined);
   const [filter, setFilter] = useState('');
   const [selected, setSelected] = useState<Selection>(null);
 

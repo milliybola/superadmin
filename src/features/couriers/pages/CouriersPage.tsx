@@ -11,6 +11,7 @@ import { Pill } from '@/shared/components/Pill';
 import { useListParams } from '@/shared/hooks/useListParams';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { formatMoney, formatNumber, formatPhone, timeAgo } from '@/shared/lib/format';
+import { useStage } from '@/app/stage';
 import { couriersApi, type Courier } from '../api';
 import { COURIER_STATUSES, COURIER_TYPES, REVIEW_STATUSES, TRANSPORT_TYPES } from '../constants';
 import { useCouriers, useCouriersSummary } from '../hooks';
@@ -35,13 +36,20 @@ export default function CouriersPage() {
   const navigate = useNavigate();
   const [exporting, setExporting] = useState(false);
   const { params, query, setFilter, setPage, setPageSize, setOrdering, reset, hasFilters } = useListParams({ ordering: '-created_at' });
+  const { stage } = useStage();
+  const partnerOnly = stage === 1;
   const f = params.filters;
   const tab = f.tab ?? '';
 
   // `tab` — UI uchun; backendga unga mos filtrlar yuboriladi
-  const apiQuery = { ...query, tab: undefined, ...(TAB_FILTERS[tab] ?? {}) };
+  const apiQuery = {
+    ...query, tab: undefined,
+    ...(partnerOnly ? { docs_issue: undefined, has_balance: undefined } : {}),
+    ...(partnerOnly ? {} : (TAB_FILTERS[tab] ?? {})),
+    ...(partnerOnly ? { courier_type: 'PARTNER' } : {}),
+  };
   const { data, isLoading, error, refetch, isFetching } = useCouriers(apiQuery);
-  const { data: s } = useCouriersSummary();
+  const { data: s } = useCouriersSummary(partnerOnly ? { courier_type: 'PARTNER' } : undefined);
 
   const exportCsv = async () => {
     setExporting(true);
@@ -54,7 +62,7 @@ export default function CouriersPage() {
     }
   };
 
-  const columns: Column<Courier>[] = [
+  const allColumns: Column<Courier>[] = [
     {
       key: 'name', header: 'Kuryer', sortKey: 'first_name',
       cell: (c) => (
@@ -99,6 +107,8 @@ export default function CouriersPage() {
     { key: 'seen', header: 'Oxirgi faollik', sortKey: 'last_seen', hideBelow: 'xl', cell: (c) => (c.last_seen ? timeAgo(c.last_seen) : '—') },
   ];
 
+  const columns = partnerOnly ? allColumns.filter((c) => !['review', 'docs', 'balance'].includes(c.key)) : allColumns;
+
   const tabs = [
     { value: '', label: 'Hammasi', count: s?.total },
     { value: 'pending', label: 'Arizalar', count: s?.pending },
@@ -110,8 +120,8 @@ export default function CouriersPage() {
   return (
     <>
       <PageHeader
-        title="Kuryerlar"
-        description={isFetching ? 'Yangilanmoqda...' : 'Arizalar, hujjatlar, hisob-kitob va jonli holat'}
+        title={partnerOnly ? 'Hamkor kuryerlari' : 'Kuryerlar'}
+        description={isFetching ? 'Yangilanmoqda...' : partnerOnly ? "Hamkorlarning o'z kuryerlari va jonli holati" : 'Arizalar, hujjatlar, hisob-kitob va jonli holat'}
         actions={
           <>
             <Button variant="outline" onClick={exportCsv} disabled={exporting}><Download className="mr-2 size-4" />CSV</Button>
@@ -120,6 +130,7 @@ export default function CouriersPage() {
         }
       />
 
+      {!partnerOnly && (
       <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <button type="button" className="text-left" onClick={() => setFilter('tab', 'pending')}>
           <StatCard icon={UserCheck} tone={s?.pending ? 'warning' : 'success'} label="Ko'rib chiqish kutmoqda" value={formatNumber(s?.pending)} loading={!s} hint={`${s?.new_week ?? 0} ta yangi (7 kun)`} />
@@ -133,23 +144,24 @@ export default function CouriersPage() {
           <StatCard icon={FileWarning} tone={s?.docs_expiring ? 'danger' : 'success'} label="Hujjat muddati" value={formatNumber(s?.docs_expiring)} loading={!s} hint="tugagan yoki 30 kunda tugaydi" />
         </button>
       </div>
+      )}
 
-      {!!s?.unassigned_orders && (
+      {!partnerOnly && !!s?.unassigned_orders && (
         <Link to="/couriers/map" className="mb-4 flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
           <AlertTriangle className="size-4" />
           <b>{s.unassigned_orders}</b> ta buyurtma kuryer kutmoqda — xaritada ko'rish
         </Link>
       )}
 
-      <div className="mb-4"><ChipTabs value={tab} onChange={(v) => setFilter('tab', v)} items={tabs} /></div>
+      {!partnerOnly && <div className="mb-4"><ChipTabs value={tab} onChange={(v) => setFilter('tab', v)} items={tabs} /></div>}
 
       <FilterBar active={hasFilters} onReset={reset}>
         <SearchInput value={f.search ?? ''} onChange={(v) => setFilter('search', v)} placeholder="Ism, telefon, davlat raqami, shahar..." className="w-[300px]" />
         <FilterSelect label="Holat" value={f.status ?? ''} onChange={(v) => setFilter('status', v)} options={Object.entries(COURIER_STATUSES).map(([value, x]) => ({ value, label: x.label }))} />
         <FilterSelect label="Transport" value={f.transport ?? ''} onChange={(v) => setFilter('transport', v)} options={Object.entries(TRANSPORT_TYPES).map(([value, label]) => ({ value, label }))} />
-        <FilterSelect label="Turi" value={f.courier_type ?? ''} onChange={(v) => setFilter('courier_type', v)} options={Object.entries(COURIER_TYPES).map(([value, label]) => ({ value, label }))} />
+        {!partnerOnly && <FilterSelect label="Turi" value={f.courier_type ?? ''} onChange={(v) => setFilter('courier_type', v)} options={Object.entries(COURIER_TYPES).map(([value, label]) => ({ value, label }))} />}
         <FilterSelect label="Onlayn" value={f.online ?? ''} onChange={(v) => setFilter('online', v)} options={[{ value: 'true', label: 'Onlayn' }, { value: 'false', label: 'Oflayn' }]} />
-        <FilterSelect label="Balans" value={f.has_balance ?? ''} onChange={(v) => setFilter('has_balance', v)} options={[{ value: 'true', label: 'Qarzi bor' }, { value: 'false', label: "Qarzi yo'q" }]} />
+        {!partnerOnly && <FilterSelect label="Balans" value={f.has_balance ?? ''} onChange={(v) => setFilter('has_balance', v)} options={[{ value: 'true', label: 'Qarzi bor' }, { value: 'false', label: "Qarzi yo'q" }]} />}
       </FilterBar>
 
       <DataTable

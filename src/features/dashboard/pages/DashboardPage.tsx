@@ -13,6 +13,7 @@ import { deltaPercent, formatCompact, formatMoney, formatNumber, formatTime } fr
 import { ORDER_STATUSES, ACTIVE_STATUSES, PAYMENT_METHODS, DELIVERY_TYPES } from '@/features/orders/constants';
 import { PARTNER_TYPE_LABELS } from '@/features/partners/constants';
 import { STORAGE_KEYS } from '@/core/config/constants';
+import { useStage } from '@/app/stage';
 import { dashboardApi } from '../api';
 
 const PERIODS = [
@@ -49,6 +50,7 @@ function ChartCard({ title, description, children, className }: { title: string;
 }
 
 export default function DashboardPage() {
+  const { stage } = useStage();
   const [days, setDays] = useState('14');
   const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['dashboard', days],
@@ -106,11 +108,13 @@ export default function DashboardPage() {
           delta={t && y ? deltaPercent(t.new_users, y.new_users) : undefined} hint="kechaga nisbatan" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid gap-4 sm:grid-cols-2 ${stage === 1 ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
         <StatCard icon={Activity} tone="warning" label="Faol buyurtmalar" loading={isLoading} value={formatNumber(live?.active_orders)}
           hint={live?.awaiting_payment ? `${live.awaiting_payment} ta to'lov kutmoqda` : undefined} />
-        <StatCard icon={Bike} label="Kuryerlar (onlayn)" loading={isLoading} value={`${live?.couriers.online ?? 0} / ${live?.couriers.total ?? 0}`}
-          hint={`${live?.couriers.available ?? 0} ta bo'sh`} />
+        {stage >= 2 && (
+          <StatCard icon={Bike} label="Kuryerlar (onlayn)" loading={isLoading} value={`${live?.couriers.online ?? 0} / ${live?.couriers.total ?? 0}`}
+            hint={`${live?.couriers.available ?? 0} ta bo'sh`} />
+        )}
         <StatCard icon={Store} tone="success" label="Ochiq hamkorlar" loading={isLoading} value={`${live?.partners.open ?? 0} / ${live?.partners.total ?? 0}`} />
         <StatCard icon={Users} tone="info" label="Mijozlar" loading={isLoading} value={formatNumber(live?.customers_total)}
           hint={`o'rtacha chek: ${formatMoney(t?.avg_check)}`} />

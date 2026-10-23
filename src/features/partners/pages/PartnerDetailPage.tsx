@@ -145,6 +145,7 @@ export default function PartnerDetailPage() {
               <Section title="Yetkazish shartlari">
                 <InfoRow label="Yetkazish narxi">{formatMoney(p.delivery_fee)}</InfoRow>
                 <InfoRow label="Yetkazish vaqti">{p.delivery_time_minutes} daqiqa</InfoRow>
+                <InfoRow label="Kuryer reysi">{p.max_active_orders} ta buyurtmagacha</InfoRow>
                 <InfoRow label="Minimal buyurtma">{formatMoney(p.min_order_amount)}</InfoRow>
                 <InfoRow label="Maksimal buyurtma">{p.max_order_amount ? formatMoney(p.max_order_amount) : 'Cheklov yo\'q'}</InfoRow>
                 <InfoRow label="Bepul yetkazish">{p.free_delivery_threshold ? `${formatMoney(p.free_delivery_threshold)} dan` : 'Yo\'q'}</InfoRow>

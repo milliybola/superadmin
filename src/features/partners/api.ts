@@ -33,6 +33,7 @@ export interface PartnerListItem {
   orders_count: number;
   revenue: number;
   delivery_time_minutes: number;
+  max_active_orders: number;
   service_type: string;
   tariff: { uuid: string; code: string; name: string } | null;
   service_amount: string;

@@ -33,6 +33,7 @@ const schema = z.object({
   max_order_amount: num('Maksimal summa', true),
   free_delivery_threshold: num('Bepul yetkazish chegarasi', true),
   delivery_time_minutes: num('Yetkazish vaqti'),
+  max_active_orders: z.string().trim().refine((v) => Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 4, "Reysdagi buyurtmalar soni 1 dan 4 gacha bo'lsin"),
   telegram_group_id: z.string().trim(),
   is_active: z.boolean(),
   tariff: z.string(),
@@ -43,14 +44,14 @@ type Values = z.infer<typeof schema>;
 const EMPTY: Values = {
   name: '', partner_type: 'RESTAURANT', phone: '+998', password: '', address: '', description: '', email: '', owner_phone: '',
   location_lat: '41.311081', location_long: '69.240562', delivery_fee: '0', min_order_amount: '0', max_order_amount: '',
-  free_delivery_threshold: '', delivery_time_minutes: '30', telegram_group_id: '', is_active: true, tariff: '', cuisine_uuids: [],
+  free_delivery_threshold: '', delivery_time_minutes: '30', max_active_orders: '3', telegram_group_id: '', is_active: true, tariff: '', cuisine_uuids: [],
 };
 
 const fromPartner = (p: PartnerDetail): Values => ({
   name: p.name, partner_type: p.partner_type, phone: p.phone, password: '', address: p.address, description: p.description ?? '',
   email: p.email ?? '', owner_phone: p.owner?.phone ?? '', location_lat: String(p.location_lat), location_long: String(p.location_long),
   delivery_fee: String(p.delivery_fee), min_order_amount: String(p.min_order_amount), max_order_amount: p.max_order_amount?.toString() ?? '',
-  free_delivery_threshold: p.free_delivery_threshold?.toString() ?? '', delivery_time_minutes: String(p.delivery_time_minutes),
+  free_delivery_threshold: p.free_delivery_threshold?.toString() ?? '', delivery_time_minutes: String(p.delivery_time_minutes), max_active_orders: String(p.max_active_orders ?? 3),
   telegram_group_id: p.telegram_group_id ?? '', is_active: p.is_active, tariff: p.tariff?.uuid ?? '', cuisine_uuids: p.cuisines.map((c) => c.uuid),
 });
 
@@ -170,6 +171,7 @@ export function PartnerFormDialog({ open, onOpenChange, partner, onSaved }: {
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Yetkazish narxi (so'm)" error={err('delivery_fee')}><Input inputMode="numeric" {...register('delivery_fee')} /></Field>
         <Field label="Yetkazish vaqti (daqiqa)" error={err('delivery_time_minutes')}><Input inputMode="numeric" {...register('delivery_time_minutes')} /></Field>
+        <Field label="Kuryer bir reysda nechta buyurtma olsin" error={err('max_active_orders')} hint="1–4 · hamkorning o'z kuryeri uchun"><Input inputMode="numeric" {...register('max_active_orders')} /></Field>
         <Field label="Minimal buyurtma (so'm)" error={err('min_order_amount')}><Input inputMode="numeric" {...register('min_order_amount')} /></Field>
         <Field label="Maksimal buyurtma (so'm)" error={err('max_order_amount')} hint="Bo'sh — cheklov yo'q"><Input inputMode="numeric" {...register('max_order_amount')} /></Field>
         <Field label="Bepul yetkazish chegarasi (so'm)" error={err('free_delivery_threshold')} hint="Bo'sh — bepul yetkazish yo'q"><Input inputMode="numeric" {...register('free_delivery_threshold')} /></Field>

@@ -125,6 +125,7 @@ export default function CourierDetailPage() {
   if (error && !c) return <ErrorState onRetry={refetch} />;
   if (isLoading || !c) return <div className="space-y-4"><Skeleton className="h-10 w-64" /><Skeleton className="h-72" /></div>;
 
+  const isPartner = c.courier_type === 'PARTNER';
   const { approval } = c;
   const pending = c.review_status !== 'approved';
   const issues = [
@@ -162,14 +163,14 @@ export default function CourierDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList className="mb-4">
           <TabsTrigger value="overview">Umumiy</TabsTrigger>
-          <TabsTrigger value="docs">Hujjatlar ({c.docs_approved}/{c.docs_total})</TabsTrigger>
-          <TabsTrigger value="finance">Moliya</TabsTrigger>
+          {!isPartner && <TabsTrigger value="docs">Hujjatlar ({c.docs_approved}/{c.docs_total})</TabsTrigger>}
+          {!isPartner && <TabsTrigger value="finance">Moliya</TabsTrigger>}
           <TabsTrigger value="orders">Buyurtmalar</TabsTrigger>
           <TabsTrigger value="ratings">Baholar</TabsTrigger>
         </TabsList>
         <TabsContent value="overview"><Overview c={c} /></TabsContent>
-        <TabsContent value="docs"><DocumentsTab courier={c} /></TabsContent>
-        <TabsContent value="finance"><FinanceTab courier={c} /></TabsContent>
+        {!isPartner && <TabsContent value="docs"><DocumentsTab courier={c} /></TabsContent>}
+        {!isPartner && <TabsContent value="finance"><FinanceTab courier={c} /></TabsContent>}
         <TabsContent value="orders"><CourierOrdersTab courier={c} /></TabsContent>
         <TabsContent value="ratings"><CourierRatingsTab courier={c} /></TabsContent>
       </Tabs>

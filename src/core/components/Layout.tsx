@@ -3,7 +3,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LogOut, Sun, Moon, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { STORAGE_KEYS } from '../config/constants';
 import { clearSession } from '../api/client';
-import { NAV_GROUPS } from '@/app/navigation';
+import { visibleNavGroups } from '@/app/navigation';
+import { StageGuard, StageSelect, useStage } from '@/app/stage';
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +48,7 @@ const Layout: React.FC = () => {
   });
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('superadmin_theme') as 'light' | 'dark') || 'dark');
   const navigate = useNavigate();
+  const { stage } = useStage();
 
   const applyTheme = (next: 'light' | 'dark') => {
     setTheme(next);
@@ -78,7 +80,7 @@ const Layout: React.FC = () => {
         </SidebarHeader>
 
         <SidebarContent>
-          {NAV_GROUPS.map((group) => (
+          {visibleNavGroups(stage).map((group) => (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -139,7 +141,8 @@ const Layout: React.FC = () => {
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm font-medium text-muted-foreground">Boshqaruv paneli</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <StageSelect />
             <Button variant="ghost" size="icon" onClick={() => applyTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Mavzuni almashtirish">
               {theme === 'light' ? <Moon className="size-4" /> : <Sun className="size-4" />}
             </Button>
@@ -147,7 +150,7 @@ const Layout: React.FC = () => {
         </header>
         <div className="mx-auto w-full max-w-[1500px] flex-1 p-4 md:p-6 lg:p-8">
           <Suspense fallback={<PageFallback />}>
-            <Outlet />
+            <StageGuard><Outlet /></StageGuard>
           </Suspense>
         </div>
       </SidebarInset>

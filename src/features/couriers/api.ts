@@ -154,11 +154,14 @@ export interface CouriersMap {
   generated_at: string;
 }
 
+/** Bosqichga qarab kuryerlar doirasi (1-bosqichda faqat hamkor kuryerlari) */
+export type CourierScope = { courier_type?: 'PLATFORM' | 'PARTNER' };
+
 export const couriersApi = {
   list: async (query: ListQuery): Promise<Paginated<Courier>> => (await apiClient.get(BASE, { params: query })).data,
   get: async (uuid: string): Promise<CourierDetail> => (await apiClient.get(`${BASE}${uuid}/`)).data,
-  summary: async (): Promise<CouriersSummary> => (await apiClient.get(`${BASE}summary/`)).data,
-  map: async (): Promise<CouriersMap> => (await apiClient.get(`${BASE}map/`)).data,
+  summary: async (params?: CourierScope): Promise<CouriersSummary> => (await apiClient.get(`${BASE}summary/`, { params })).data,
+  map: async (params?: CourierScope): Promise<CouriersMap> => (await apiClient.get(`${BASE}map/`, { params })).data,
 
   update: async (uuid: string, body: Partial<Pick<Courier, 'city' | 'courier_type'> & { first_name: string; last_name: string }>) =>
     (await apiClient.patch(`${BASE}${uuid}/`, body)).data as CourierDetail,
