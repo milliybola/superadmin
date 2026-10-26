@@ -19,6 +19,7 @@ export interface DashboardData {
     active_orders: number;
     active_by_status: Record<string, number>;
     awaiting_payment: number;
+    awaiting_verification?: number;
     couriers: { total: number; online: number; available: number };
     partners: { total: number; open: number };
     customers_total: number;

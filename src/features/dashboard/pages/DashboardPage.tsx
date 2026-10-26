@@ -110,7 +110,7 @@ export default function DashboardPage() {
 
       <div className={`grid gap-4 sm:grid-cols-2 ${stage === 1 ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
         <StatCard icon={Activity} tone="warning" label="Faol buyurtmalar" loading={isLoading} value={formatNumber(live?.active_orders)}
-          hint={live?.awaiting_payment ? `${live.awaiting_payment} ta to'lov kutmoqda` : undefined} />
+          hint={[live?.awaiting_verification ? `${live.awaiting_verification} ta tasdiqlanmoqda` : '', live?.awaiting_payment ? `${live.awaiting_payment} ta to'lov kutmoqda` : ''].filter(Boolean).join(' · ') || undefined} />
         {stage >= 2 && (
           <StatCard icon={Bike} label="Kuryerlar (onlayn)" loading={isLoading} value={`${live?.couriers.online ?? 0} / ${live?.couriers.total ?? 0}`}
             hint={`${live?.couriers.available ?? 0} ta bo'sh`} />

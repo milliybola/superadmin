@@ -15,11 +15,13 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { useVerificationAlerts } from '@/features/verification/hooks';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -49,6 +51,7 @@ const Layout: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => (localStorage.getItem('superadmin_theme') as 'light' | 'dark') || 'dark');
   const navigate = useNavigate();
   const { stage } = useStage();
+  const queueCount = useVerificationAlerts();
 
   const applyTheme = (next: 'light' | 'dark') => {
     setTheme(next);
@@ -95,6 +98,7 @@ const Layout: React.FC = () => {
                           </SidebarMenuButton>
                         )}
                       </NavLink>
+                      {item.to === '/verifications' && queueCount > 0 && <SidebarMenuBadge>{queueCount}</SidebarMenuBadge>}
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>

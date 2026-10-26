@@ -62,5 +62,7 @@ export const ENDPOINTS = {
     AUDIT: 'superadmin/audit/',
     DISPATCH: 'superadmin/dispatch-config/',
     SMS_STATUS: 'superadmin/sms/status/',
+    VERIFICATIONS: 'superadmin/verifications/',
+    CUSTOMERS: 'superadmin/customers/',
   },
 };

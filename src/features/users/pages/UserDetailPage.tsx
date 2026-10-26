@@ -13,6 +13,7 @@ import { OrderStatusBadge } from '@/features/orders/components/OrderStatusBadge'
 import { useUser, useUserActions } from '../hooks';
 import { EditUserDialog } from '../components/EditUserDialog';
 import { ROLE_LABELS } from '../constants';
+import { CustomerVerificationPanel } from '@/features/verification/components/CustomerVerificationPanel';
 import { UserFlags } from '../components/UserFlags';
 
 export default function UserDetailPage() {
@@ -52,6 +53,12 @@ export default function UserDetailPage() {
             <InfoRow label="Oxirgi kirish">{u.last_login ? timeAgo(u.last_login) : '—'}</InfoRow>
             <InfoRow label="O'qilmagan xabarlar">{u.unread_notifications}</InfoRow>
           </Section>
+
+          {u.role === 'customer' && (
+            <Section title="Tasdiqlash holati">
+              <CustomerVerificationPanel userUuid={u.uuid} />
+            </Section>
+          )}
 
           <Section title="Statistika">
             <InfoRow label="Buyurtmalar">{formatNumber(u.orders_count)}</InfoRow>

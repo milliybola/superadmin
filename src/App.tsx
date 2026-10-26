@@ -10,6 +10,7 @@ import { YANDEX_MAPS_API_KEY } from './core/config/constants';
 // Sahifalar kerak bo'lganda yuklanadi (Layout ichidagi Suspense ko'rsatadi)
 const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage'));
 const OrdersPage = lazy(() => import('./features/orders/pages/OrdersPage'));
+const VerificationQueuePage = lazy(() => import('./features/verification/pages/VerificationQueuePage'));
 const OrderDetailPage = lazy(() => import('./features/orders/pages/OrderDetailPage'));
 const CouriersPage = lazy(() => import('./features/couriers/pages/CouriersPage'));
 const CourierDetailPage = lazy(() => import('./features/couriers/pages/CourierDetailPage'));
@@ -44,6 +45,7 @@ const App: React.FC = () => (
             <Route index element={<DashboardPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:uuid" element={<OrderDetailPage />} />
+            <Route path="verifications" element={<VerificationQueuePage />} />
             <Route path="couriers" element={<CouriersPage />} />
             <Route path="couriers/map" element={<CouriersMapPage />} />
             <Route path="couriers/:uuid" element={<CourierDetailPage />} />

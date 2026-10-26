@@ -1,6 +1,7 @@
 import type { Tone } from '@/shared/components/Pill';
 
 export const ORDER_STATUSES: Record<string, { label: string; tone: Tone }> = {
+  VERIFYING: { label: 'Tasdiqlanmoqda', tone: 'warning' },
   AWAITING_PAYMENT: { label: "To'lov kutilmoqda", tone: 'warning' },
   PENDING: { label: 'Yangi', tone: 'info' },
   NEW: { label: 'Yangi', tone: 'info' },
@@ -23,6 +24,7 @@ export const TERMINAL_STATUSES = ['DELIVERED', 'CANCELLED', 'REJECTED'];
 export const STATUS_GROUPS = [
   { value: '', label: 'Hammasi' },
   { value: ACTIVE_STATUSES.join(','), label: 'Faol' },
+  { value: 'VERIFYING', label: 'Tasdiqlanmoqda' },
   { value: 'AWAITING_PAYMENT', label: "To'lov kutilmoqda" },
   { value: 'DELIVERED', label: 'Yetkazilgan' },
   { value: 'CANCELLED,REJECTED', label: 'Bekor qilingan' },

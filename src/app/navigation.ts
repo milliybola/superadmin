@@ -1,6 +1,6 @@
 import {
   BadgeDollarSign, Bike, BookOpen, Map, ChefHat, CreditCard, FileBarChart, History, Image, LandPlot, LayoutDashboard, MapPin, Megaphone,
-  Package, Percent, Radio, ShieldCheck, ShoppingBag, Store, Users, Wallet, type LucideIcon,
+  Package, Percent, PhoneCall, Radio, ShieldCheck, ShoppingBag, Store, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -28,6 +28,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Operatsiyalar',
     items: [
       { to: '/orders', label: 'Buyurtmalar', icon: ShoppingBag, stage: 1 },
+      { to: '/verifications', label: 'Tasdiqlash navbati', icon: PhoneCall, stage: 1 },
       { to: '/couriers', label: 'Kuryerlar', icon: Bike, stage: 1 },
       { to: '/couriers/map', label: 'Kuryerlar xaritasi', icon: Map, stage: 1 },
       { to: '/dispatch', label: 'Dispetcher va SMS', icon: Radio, stage: 2 },
