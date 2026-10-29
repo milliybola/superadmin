@@ -34,6 +34,7 @@ const MerchantsPage = lazy(() => import('./features/finance/pages/MerchantsPage'
 const AdminsPage = lazy(() => import('./features/system/pages/AdminsPage'));
 const AuditPage = lazy(() => import('./features/system/pages/AuditPage'));
 const DispatchPage = lazy(() => import('./features/system/pages/DispatchPage'));
+const SmsPage = lazy(() => import('./features/sms/pages/SmsPage'));
 
 const App: React.FC = () => (
   <Providers>
@@ -68,6 +69,7 @@ const App: React.FC = () => (
             <Route path="admins" element={<AdminsPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="dispatch" element={<DispatchPage />} />
+            <Route path="sms" element={<SmsPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

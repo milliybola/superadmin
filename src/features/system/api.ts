@@ -42,18 +42,6 @@ export const auditApi = createResource<AuditEntry>(ENDPOINTS.ADMIN.AUDIT);
 export const adminHooks = createResourceHooks('admins', adminsApi);
 export const auditHooks = createResourceHooks('audit', auditApi);
 
-export interface SmsStatus {
-  enabled: boolean;
-  sender: string;
-  template: string;
-  per_phone_daily: number;
-  global_daily: number;
-  balance: number | null;
-  error: string;
-}
-
-export const getSmsStatus = async (): Promise<SmsStatus> => (await apiClient.get(ENDPOINTS.ADMIN.SMS_STATUS)).data;
-
 export const dispatchApi = {
   get: async (): Promise<DispatchConfig> => (await apiClient.get(ENDPOINTS.ADMIN.DISPATCH)).data,
   save: async (body: Partial<DispatchConfig> & { bot_token?: string }): Promise<DispatchConfig> =>

@@ -1,5 +1,5 @@
 import {
-  BadgeDollarSign, Bike, BookOpen, Map, ChefHat, CreditCard, FileBarChart, History, Image, LandPlot, LayoutDashboard, MapPin, Megaphone,
+  BadgeDollarSign, Bike, BookOpen, Map, ChefHat, CreditCard, FileBarChart, History, Image, LandPlot, LayoutDashboard, MapPin, Megaphone, MessageSquareText,
   Package, Percent, PhoneCall, Radio, ShieldCheck, ShoppingBag, Store, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 
@@ -31,7 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/verifications', label: 'Tasdiqlash navbati', icon: PhoneCall, stage: 1 },
       { to: '/couriers', label: 'Kuryerlar', icon: Bike, stage: 1 },
       { to: '/couriers/map', label: 'Kuryerlar xaritasi', icon: Map, stage: 1 },
-      { to: '/dispatch', label: 'Dispetcher va SMS', icon: Radio, stage: 2 },
+      { to: '/dispatch', label: 'Telegram dispetcher', icon: Radio, stage: 2 },
     ],
   },
   {
@@ -81,6 +81,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/admins', label: 'Administratorlar', icon: ShieldCheck, stage: 1 },
       { to: '/audit', label: 'Audit jurnali', icon: History, stage: 1 },
+      { to: '/sms', label: 'SMS', icon: MessageSquareText, stage: 1 },
     ],
   },
 ];

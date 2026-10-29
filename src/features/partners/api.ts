@@ -109,11 +109,23 @@ export interface Tariff {
   name: string;
   description: string;
   price_monthly: number;
+  /** aksiyagacha (chizilgan) narx; 0 bo'lsa ko'rsatilmaydi */
+  price_monthly_original: number;
   allow_pickup: boolean;
   allow_dine_in: boolean;
-  /** null — cheksiz */
+  /** null — cheksiz. `tables_per_filial` bo'lsa — har filialga */
   max_tables: number | null;
+  tables_per_filial: boolean;
   max_filials: number | null;
+  max_products: number | null;
+  max_couriers: number | null;
+  /** oyiga bepul MilliyGo buyurtmalari; null — cheksiz */
+  free_orders_monthly: number | null;
+  /** kvotadan ortgan har buyurtma narxi (so'm) */
+  extra_order_fee: number;
+  /** mijoz ro'yxatida ustuvorlik (katta son — oldinroq) */
+  listing_priority: number;
+  priority_support: boolean;
   is_default: boolean;
   is_active: boolean;
   order: number;

@@ -12,9 +12,7 @@ import { PageHeader } from '@/shared/components/PageHeader';
 import { ErrorState } from '@/shared/components/State';
 import { Field, SwitchField } from '@/shared/components/Field';
 import { Pill } from '@/shared/components/Pill';
-import { InfoRow } from '@/shared/components/InfoRow';
-import { formatMoney, formatNumber } from '@/shared/lib/format';
-import { dispatchApi, getSmsStatus } from '../api';
+import { dispatchApi } from '../api';
 
 const schema = z.object({
   courier_group_id: z.string().trim().min(1, 'Guruh ID ni kiriting'),
@@ -48,7 +46,7 @@ export default function DispatchPage() {
 
   return (
     <>
-      <PageHeader title="Dispetcher va SMS" description="Telegram dispetcher sozlamalari va SMS xizmati holati" />
+      <PageHeader title="Telegram dispetcher" description="Buyurtmalarni Telegram orqali kuryerlarga tarqatish sozlamalari" />
       <Card className="max-w-2xl">
         <CardHeader>
           <CardTitle className="text-base">Telegram sozlamalari</CardTitle>
@@ -78,41 +76,6 @@ export default function DispatchPage() {
           )}
         </CardContent>
       </Card>
-      <SmsCard />
     </>
-  );
-}
-
-function SmsCard() {
-  const { data, isLoading, refetch, isFetching } = useQuery({ queryKey: ['sms-status'], queryFn: getSmsStatus, staleTime: 60_000 });
-  return (
-    <Card className="mt-4 max-w-2xl">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between text-base">
-          <span>SMS (Eskiz.uz)</span>
-          {data && <Pill tone={data.enabled ? 'success' : 'muted'} dot>{data.enabled ? 'Yoqilgan' : "O'chiq"}</Pill>}
-        </CardTitle>
-        <CardDescription>Tasdiqlash kodi Telegramga qo'shimcha SMS orqali ham yuboriladi. Hisob ma'lumotlari serverdagi `.env` faylida saqlanadi.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading || !data ? <Skeleton className="h-24" /> : !data.enabled ? (
-          <p className="text-sm text-muted-foreground">
-            O'chiq. Yoqish uchun serverda <code>ESKIZ_EMAIL</code> va <code>ESKIZ_PASSWORD</code> ni kiriting va backendni qayta ishga tushiring.
-          </p>
-        ) : (
-          <div className="divide-y divide-border/60">
-            <InfoRow label="Hisobdagi qoldiq">{data.balance !== null ? formatMoney(data.balance) : <span className="text-destructive">{data.error || 'Noma\'lum'}</span>}</InfoRow>
-            <InfoRow label="Jo'natuvchi">{data.sender}</InfoRow>
-            <InfoRow label="Limit">{data.per_phone_daily} ta / raqam, {formatNumber(data.global_daily)} ta / kun (butun tizim)</InfoRow>
-            <InfoRow label="Matn shabloni"><span className="font-mono text-xs">{data.template}</span></InfoRow>
-          </div>
-        )}
-        {data?.enabled && (
-          <div className="mt-3 flex justify-end">
-            <Button variant="outline" size="sm" onClick={() => void refetch()} disabled={isFetching}>Yangilash</Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
