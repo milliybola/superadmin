@@ -7,10 +7,18 @@ function toBody(body: unknown): { data: unknown; headers?: Record<string, string
   return { data: body };
 }
 
+/**
+ * Ba'zi resurslar (tariflar, oshxona turlari) sahifalanmagan — backend oddiy massiv qaytaradi.
+ * Jadval va tanlovlar `{count, results}` kutadi, shuning uchun massiv shu shaklga o'raladi.
+ */
+function asPaginated<T>(data: Paginated<T> | T[]): Paginated<T> {
+  return Array.isArray(data) ? { count: data.length, next: null, previous: null, results: data } : data;
+}
+
 /** Admin REST resursi uchun umumiy CRUD (`base` oxiri `/` bilan: 'superadmin/banners/') */
 export function createResource<TList, TDetail = TList>(base: string) {
   return {
-    list: async (query: ListQuery = {}): Promise<Paginated<TList>> => (await apiClient.get(base, { params: query })).data,
+    list: async (query: ListQuery = {}): Promise<Paginated<TList>> => asPaginated<TList>((await apiClient.get(base, { params: query })).data),
     get: async (id: string | number): Promise<TDetail> => (await apiClient.get(`${base}${id}/`)).data,
     create: async (body: unknown): Promise<TDetail> => {
       const { data, headers } = toBody(body);

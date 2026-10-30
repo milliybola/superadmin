@@ -113,6 +113,8 @@ export interface Tariff {
   price_monthly_original: number;
   allow_pickup: boolean;
   allow_dine_in: boolean;
+  /** stol QR menyusi (mijoz telefondan buyurtma beradi); zal yoqilgan bo'lishi kerak */
+  allow_qr_menu: boolean;
   /** null — cheksiz. `tables_per_filial` bo'lsa — har filialga */
   max_tables: number | null;
   tables_per_filial: boolean;
@@ -139,6 +141,8 @@ export interface TariffUsage {
   restricted: boolean;
   allow_pickup: boolean;
   allow_dine_in: boolean;
+  /** stol QR menyusi (mijoz telefondan buyurtma beradi); zal yoqilgan bo'lishi kerak */
+  allow_qr_menu: boolean;
   max_tables: number | null;
   max_filials: number | null;
   usage: { tables: number; filials: number };

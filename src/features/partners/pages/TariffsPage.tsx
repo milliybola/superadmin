@@ -27,6 +27,7 @@ const schema = z.object({
   price_monthly_original: money,
   allow_pickup: z.boolean(),
   allow_dine_in: z.boolean(),
+  allow_qr_menu: z.boolean(),
   max_tables: limit,
   tables_per_filial: z.boolean(),
   max_filials: limit.refine((v) => v === '' || Number(v) >= 1, 'Kamida 1 (bosh filial)'),
@@ -44,7 +45,7 @@ type Values = z.infer<typeof schema>;
 
 const EMPTY: Values = {
   code: '', name: '', description: '', price_monthly: '0', price_monthly_original: '0',
-  allow_pickup: false, allow_dine_in: false, max_tables: '', tables_per_filial: true,
+  allow_pickup: false, allow_dine_in: false, allow_qr_menu: false, max_tables: '', tables_per_filial: true,
   max_filials: '1', max_products: '', max_couriers: '', free_orders_monthly: '', extra_order_fee: '0',
   listing_priority: '0', priority_support: false, is_default: false, is_active: true, order: '0',
 };
@@ -59,7 +60,7 @@ function TariffDialog({ tariff, onClose }: { tariff?: Tariff; onClose: () => voi
     values: tariff ? {
       code: tariff.code, name: tariff.name, description: tariff.description, price_monthly: String(tariff.price_monthly),
       price_monthly_original: String(tariff.price_monthly_original ?? 0),
-      allow_pickup: tariff.allow_pickup, allow_dine_in: tariff.allow_dine_in, max_tables: tariff.max_tables?.toString() ?? '',
+      allow_pickup: tariff.allow_pickup, allow_dine_in: tariff.allow_dine_in, allow_qr_menu: tariff.allow_qr_menu ?? false, max_tables: tariff.max_tables?.toString() ?? '',
       tables_per_filial: tariff.tables_per_filial ?? true,
       max_filials: tariff.max_filials?.toString() ?? '', max_products: tariff.max_products?.toString() ?? '',
       max_couriers: tariff.max_couriers?.toString() ?? '', free_orders_monthly: tariff.free_orders_monthly?.toString() ?? '',
@@ -75,6 +76,7 @@ function TariffDialog({ tariff, onClose }: { tariff?: Tariff; onClose: () => voi
     const body = {
       ...v, price_monthly: Number(v.price_monthly), price_monthly_original: Number(v.price_monthly_original || 0),
       order: Number(v.order), listing_priority: Number(v.listing_priority || 0), extra_order_fee: Number(v.extra_order_fee || 0),
+      allow_qr_menu: v.allow_dine_in && v.allow_qr_menu,
       max_tables: v.allow_dine_in ? toNumberOrNull(v.max_tables) : null, max_filials: toNumberOrNull(v.max_filials),
       max_products: toNumberOrNull(v.max_products), max_couriers: toNumberOrNull(v.max_couriers),
       free_orders_monthly: toNumberOrNull(v.free_orders_monthly),
@@ -108,6 +110,12 @@ function TariffDialog({ tariff, onClose }: { tariff?: Tariff; onClose: () => voi
       <Controller control={control} name="allow_dine_in" render={({ field }) => (
         <SwitchField label="Zal va stollar" description="Stol qo'shish va stol buyurtmalari" checked={field.value} onChange={field.onChange} />
       )} />
+      {dineIn && (
+        <Controller control={control} name="allow_qr_menu" render={({ field }) => (
+          <SwitchField label="Stol QR menyusi" description="Har stolga alohida QR: mijoz telefondan buyurtma beradi, ofitsiantni chaqiradi, hisobni ko'radi"
+            checked={field.value} onChange={field.onChange} />
+        )} />
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Filial limiti" error={err('max_filials')} hint="Bosh filial bilan birga. Bo'sh — cheksiz"><Input inputMode="numeric" {...register('max_filials')} /></Field>
         <Field label="Stol limiti" error={err('max_tables')} hint={dineIn ? (tablesPerFilial ? 'Har filialga. Bo\'sh — cheksiz' : 'Jami. Bo\'sh — cheksiz') : 'Zal yoqilmagan'}><Input inputMode="numeric" disabled={!dineIn} {...register('max_tables')} /></Field>
@@ -159,6 +167,7 @@ export default function TariffsPage() {
     { key: 'delivery', header: 'Yetkazish', cell: () => <Pill tone="success">Bor</Pill> },
     { key: 'pickup', header: 'Olib ketish', cell: (t) => <Pill tone={t.allow_pickup ? 'success' : 'muted'}>{t.allow_pickup ? 'Bor' : "Yo'q"}</Pill> },
     { key: 'dine', header: 'Zal / stollar', cell: (t) => t.allow_dine_in ? <Pill tone="success">{text(t.max_tables)} ta{t.tables_per_filial ? ' /filial' : ''} stol</Pill> : <Pill tone="muted">Yo'q</Pill> },
+    { key: 'qr', header: 'Stol QR', hideBelow: 'lg', cell: (t) => <Pill tone={t.allow_qr_menu ? 'success' : 'muted'}>{t.allow_qr_menu ? 'Bor' : "Yo'q"}</Pill> },
     { key: 'filials', header: 'Filial', cell: (t) => text(t.max_filials) },
     { key: 'products', header: 'Mahsulot', hideBelow: 'lg', cell: (t) => text(t.max_products) },
     { key: 'couriers', header: 'Kuryer', hideBelow: 'lg', cell: (t) => text(t.max_couriers) },
