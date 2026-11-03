@@ -149,7 +149,16 @@ export default function OrderDetailPage() {
           <Section title="Yetkazish va to'lov">
             {order.address && <InfoRow label="Manzil"><span className="inline-flex items-start gap-1"><MapPin className="mt-0.5 size-3.5 shrink-0" />{order.address}</span></InfoRow>}
             {order.table_number && <InfoRow label="Stol">{order.table_number}</InfoRow>}
-            <InfoRow label="To'lov usuli">{PAYMENT_METHODS[order.payment_method] ?? order.payment_method}</InfoRow>
+            <InfoRow label="To'lov usuli">
+              {order.payment_breakdown && order.payment_breakdown.length > 1 ? (
+                <span className="text-right">
+                  Aralash:{' '}
+                  {order.payment_breakdown.map((p) => `${PAYMENT_METHODS[p.method] ?? p.method} ${formatMoney(Number(p.amount))}`).join(' + ')}
+                </span>
+              ) : (
+                PAYMENT_METHODS[order.payment_method] ?? order.payment_method
+              )}
+            </InfoRow>
             <InfoRow label="To'lov holati"><Pill tone={order.is_paid ? 'success' : 'warning'}>{order.is_paid ? "To'langan" : "To'lanmagan"}</Pill></InfoRow>
             <InfoRow label="Manba">{ORDER_SOURCES[order.order_source] ?? order.order_source}</InfoRow>
             {order.description && <InfoRow label="Izoh">{order.description}</InfoRow>}

@@ -65,7 +65,7 @@ function buildBody(v: Values, isEdit: boolean, logo: File | null, banner: File |
     free_delivery_threshold: v.free_delivery_threshold === '' ? null : v.free_delivery_threshold,
     telegram_group_id: v.telegram_group_id || null,
     email: v.email || null,
-    // Yangi hamkor: bo'sh = standart tarif (server beradi); tahrirda bo'sh = cheklovsiz (tarifsiz)
+    // Bo'sh = standart tarif: yangi hamkorga server biriktiradi, tahrirda tarif olib tashlanadi va standarti amal qiladi
     tariff: v.tariff || (isEdit ? null : undefined),
     cuisine_uuids: v.partner_type === 'SHOP' ? [] : v.cuisine_uuids,
   };
@@ -145,7 +145,7 @@ export function PartnerFormDialog({ open, onOpenChange, partner, onSaved }: {
           <Select value={field.value || NO_TARIFF} onValueChange={(v) => field.onChange(v === NO_TARIFF ? '' : v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_TARIFF}>{isEdit ? 'Cheklovsiz (tarifsiz)' : 'Standart tarif (avtomatik)'}</SelectItem>
+              <SelectItem value={NO_TARIFF}>Standart tarif (avtomatik)</SelectItem>
               {(tariffs?.results ?? []).filter((t) => t.is_active).map((t) => <SelectItem key={t.uuid} value={t.uuid}>{t.name}</SelectItem>)}
             </SelectContent>
           </Select>

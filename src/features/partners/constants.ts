@@ -19,4 +19,4 @@ export const WEEKDAY_LABELS: { key: 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat
 
 export const FILIAL_STATUSES: Record<string, string> = { ACTIVE: 'Faol', INACTIVE: 'Faol emas', CLOSED: 'Yopiq' };
 
-export const STAFF_ROLES: Record<string, string> = { manager: 'Menejer', waiter: 'Ofitsiant' };
+export const STAFF_ROLES: Record<string, string> = { manager: 'Menejer', cashier: 'Kassir', waiter: 'Ofitsiant' };

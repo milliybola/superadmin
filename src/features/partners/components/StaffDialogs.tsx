@@ -17,7 +17,7 @@ const NONE = '__none__';
 const schema = z.object({
   name: z.string().trim().min(2, 'Ismni kiriting').max(100),
   phone: z.string().trim().min(9, 'Telefonni kiriting').max(20),
-  role: z.enum(['manager', 'waiter']),
+  role: z.enum(['manager', 'cashier', 'waiter']),
   password: z.string(),
   home_filial: z.string(),
   is_active: z.boolean(),

@@ -31,6 +31,8 @@ export interface OrderListItem {
   delivery_type: string;
   order_source: string;
   payment_method: string;
+  /** Aralash to'lov qismlari (bo'sh — bitta usul) */
+  payment_breakdown?: { method: string; amount: string | number }[];
   is_paid: boolean;
   total_price: number;
   delivery_fee: number;

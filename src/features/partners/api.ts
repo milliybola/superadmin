@@ -94,7 +94,7 @@ export interface Staff {
   uuid: string;
   partner: string;
   partner_name: string;
-  role: 'manager' | 'waiter';
+  role: 'manager' | 'cashier' | 'waiter';
   name: string;
   phone: string;
   is_active: boolean;

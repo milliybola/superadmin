@@ -152,7 +152,13 @@ export default function PartnerDetailPage() {
               </Section>
               <Section title="Tarif" action={<Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>O'zgartirish</Button>}>
                 <InfoRow label="Tarif">
-                  {p.tariff_info.restricted ? p.tariff_info.name : <span className="text-muted-foreground">Cheklovsiz (tarifsiz)</span>}
+                  {!p.tariff_info.restricted ? (
+                    <span className="text-muted-foreground">Cheklovsiz (standart tarif yo'q)</span>
+                  ) : p.tariff ? (
+                    p.tariff_info.name
+                  ) : (
+                    <>{p.tariff_info.name} <span className="text-muted-foreground">(standart, avtomatik)</span></>
+                  )}
                 </InfoRow>
                 <InfoRow label="Yetkazib berish"><Pill tone="success">Bor</Pill></InfoRow>
                 <InfoRow label="Olib ketish"><Pill tone={p.tariff_info.allow_pickup ? 'success' : 'muted'}>{p.tariff_info.allow_pickup ? 'Bor' : "Yo'q"}</Pill></InfoRow>
