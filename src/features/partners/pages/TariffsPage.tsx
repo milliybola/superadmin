@@ -108,7 +108,7 @@ function TariffDialog({ tariff, onClose }: { tariff?: Tariff; onClose: () => voi
         <SwitchField label="Olib ketish" description="Mijoz va kassa «olib ketish» buyurtmasi bera oladi" checked={field.value} onChange={field.onChange} />
       )} />
       <Controller control={control} name="allow_dine_in" render={({ field }) => (
-        <SwitchField label="Zal va stollar" description="Stol qo'shish va stol buyurtmalari" checked={field.value} onChange={field.onChange} />
+        <SwitchField label="Zal va stollar" description="Stollar, zallar (o'z-o'ziga xizmat ham), ofitsiantlar va xizmat haqi. O'chirilsa — faqat yetkazib berish va olib ketish tarifi" checked={field.value} onChange={field.onChange} />
       )} />
       {dineIn && (
         <Controller control={control} name="allow_qr_menu" render={({ field }) => (
