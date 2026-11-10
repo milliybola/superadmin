@@ -1,79 +1,70 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Link, Navigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Layers } from 'lucide-react';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import apiClient from '@/core/api/client';
+import { ENDPOINTS } from '@/core/config/constants';
 import { routeStage } from './navigation';
+import { STAGE } from './stageLevels';
 
-export type Stage = 1 | 2 | 3;
+export type Stage = 1 | 2 | 3 | 4;
 
-const STORAGE_KEY = 'superadmin_stage';
+export { STAGE };
 
-export const STAGE_OPTIONS: { value: Stage; label: string }[] = [
-  { value: 1, label: '1-bosqich: Hamkor va mijoz' },
-  { value: 2, label: '2-bosqich: + MilliyGo kuryerlari' },
-  { value: 3, label: 'Hammasi' },
+export const STAGE_OPTIONS: { value: Stage; label: string; short: string }[] = [
+  { value: STAGE.BASE, label: '1-bosqich: Hamkor va mijoz', short: 'Hamkor va mijoz' },
+  { value: STAGE.POS, label: '2-bosqich: + POS tizimi', short: '+ POS tizimi' },
+  { value: STAGE.COURIERS, label: '3-bosqich: + MilliyGo kuryerlari', short: '+ MilliyGo kuryerlari' },
+  { value: STAGE.ALL, label: '4-bosqich: Hammasi', short: 'Hammasi' },
 ];
 
-function readStage(): Stage {
-  try {
-    const v = Number(localStorage.getItem(STORAGE_KEY));
-    return v === 2 || v === 3 ? v : 1;
-  } catch {
-    return 1;
-  }
-}
-
-interface StageCtx {
+export interface PlatformStage {
   stage: Stage;
-  setStage: (s: Stage) => void;
+  features: { pos: boolean; couriers: boolean };
+  updated_at: string | null;
+  updated_by_name: string;
 }
 
-const StageContext = createContext<StageCtx>({ stage: 1, setStage: () => {} });
+export const PLATFORM_STAGE_KEY = ['platform-stage'] as const;
 
-export function StageProvider({ children }: { children: ReactNode }) {
-  const [stage, setStageState] = useState<Stage>(readStage);
-  const value = useMemo<StageCtx>(
-    () => ({
-      stage,
-      setStage: (s) => {
-        setStageState(s);
-        try {
-          localStorage.setItem(STORAGE_KEY, String(s));
-        } catch {
-          /* localStorage mavjud emas */
-        }
-      },
-    }),
-    [stage],
-  );
-  return <StageContext.Provider value={value}>{children}</StageContext.Provider>;
+export const platformStageApi = {
+  get: async (): Promise<PlatformStage> => (await apiClient.get(ENDPOINTS.ADMIN.PLATFORM_STAGE)).data,
+  set: async (stage: Stage): Promise<PlatformStage> => (await apiClient.patch(ENDPOINTS.ADMIN.PLATFORM_STAGE, { stage })).data,
+};
+
+/**
+ * Joriy platforma bosqichi — serverdan (butun platformaga ta'sir qiladi, «Bosqichlar» sahifasida o'zgartiriladi).
+ * Yuklanguncha `stage` = 1 (eng tor ko'rinish), `ready` = false.
+ */
+export function useStage() {
+  const q = useQuery({ queryKey: PLATFORM_STAGE_KEY, queryFn: platformStageApi.get, staleTime: 60_000 });
+  return { stage: (q.data?.stage ?? STAGE.BASE) as Stage, ready: !!q.data, query: q };
 }
 
-export const useStage = () => useContext(StageContext);
-
-/** Bosqich tanlagich (sarlavhada) */
-export function StageSelect() {
-  const { stage, setStage } = useStage();
+/** Sarlavhadagi kichik belgi: joriy bosqich; bosilsa «Bosqichlar» sahifasi */
+export function StageBadge() {
+  const { stage, ready } = useStage();
+  if (!ready) return null;
+  const opt = STAGE_OPTIONS.find((o) => o.value === stage);
   return (
-    <div className="flex items-center gap-2">
-      <span className="hidden text-xs text-muted-foreground sm:inline">Bosqich</span>
-      <Select value={String(stage)} onValueChange={(v) => setStage(Number(v) as Stage)}>
-        <SelectTrigger aria-label="Bosqich" className="h-9 w-[150px] sm:w-[250px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent align="end">
-          {STAGE_OPTIONS.map((o) => <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
+    <Link
+      to="/stages"
+      title={opt?.label}
+      className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary ring-1 ring-inset ring-primary/25 hover:bg-primary/15"
+    >
+      <Layers className="size-3.5" />
+      <span>{stage}-bosqich</span>
+      <span className="hidden text-primary/80 md:inline">· {opt?.short}</span>
+    </Link>
   );
 }
 
-/** Joriy bosqichda ochilmaydigan yo'lga kirilsa — dashbordga qaytaradi */
+/** Joriy bosqichda ochilmaydigan yo'lga kirilsa — dashbordga qaytaradi (bosqich yuklangandan keyin) */
 export function StageGuard({ children }: { children: ReactNode }) {
-  const { stage } = useStage();
+  const { stage, ready } = useStage();
   const { pathname } = useLocation();
-  const blocked = routeStage(pathname) > stage;
+  const blocked = ready && routeStage(pathname) > stage;
   useEffect(() => {
     if (blocked) toast.error("Bu bo'lim keyingi bosqichda");
   }, [blocked]);

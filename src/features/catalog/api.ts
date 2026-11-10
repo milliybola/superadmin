@@ -44,7 +44,19 @@ export interface ProductDetail extends ProductListItem {
   option_groups: { name: string; min_select: number; max_select: number; options: { name: string; price_delta: number; is_available: boolean }[] }[];
   set_items: { product: string; quantity: number }[];
   stock: { filial: string; quantity: number; price: number; is_available: boolean }[];
+  /** Fiskal chek (OFD) uchun soliq klassifikatori; null — kiritilmagan */
+  fiscal: ProductFiscal | null;
 }
+
+export interface ProductFiscal {
+  mxik_code: string;
+  package_code: string;
+  units: number | null;
+  vat_percent: number;
+}
+
+export const saveProductFiscal = async (uuid: string, body: ProductFiscal): Promise<ProductDetail> =>
+  (await apiClient.post(`${ENDPOINTS.ADMIN.PRODUCTS}${uuid}/fiscal/`, body)).data;
 
 export const categoriesApi = createResource<Category>(ENDPOINTS.ADMIN.CATEGORIES);
 export const productsApi = createResource<ProductListItem, ProductDetail>(ENDPOINTS.ADMIN.PRODUCTS);

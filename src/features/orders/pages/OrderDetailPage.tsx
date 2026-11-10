@@ -13,7 +13,28 @@ import { OrderStatusBadge } from '../components/OrderStatusBadge';
 import { ChangeStatusDialog } from '../components/ChangeStatusDialog';
 import { AssignCourierDialog } from '../components/AssignCourierDialog';
 import { useOrder, useOrderActions } from '../hooks';
+import type { OrderHistoryEntry } from '../api';
 import { ACTOR_LABELS, DELIVERY_TYPES, ORDER_SOURCES, PAYMENT_METHODS, TERMINAL_STATUSES, orderStatusLabel } from '../constants';
+
+const methodLabel = (text: string) =>
+  text.replace(/\b(CASH|CARD|TRANSFER|PAYME|CLICK)\b/g, (m) => (PAYMENT_METHODS[m] ?? m).toLowerCase());
+
+/**
+ * Holat o'zgarmagan tarix yozuvi (from_status = to_status) — bu holat emas, voqea: to'lov yoki chegirma o'zgarishi.
+ * Backend izohi: "To'lov o'zgardi: CASH, to'langan → CARD, to'langan. Sabab: ..." → "To'lov o'zgartirildi: naqd → karta".
+ */
+function historyEvent(h: OrderHistoryEntry): { title: string; detail?: string; reason?: string; tone?: 'warning' } {
+  if (!h.from_status || h.from_status !== h.to_status) {
+    return { title: `${h.from_status ? `${orderStatusLabel(h.from_status)} → ` : ''}${orderStatusLabel(h.to_status)}`, detail: h.note || undefined };
+  }
+  const note = h.note ?? '';
+  const [body, reason] = note.split(/\.\s*Sabab:\s*/);
+  if (note.startsWith("To'lov o'zgardi:")) {
+    return { title: "To'lov o'zgartirildi", detail: methodLabel(body.replace("To'lov o'zgardi:", '').trim()), reason, tone: 'warning' };
+  }
+  if (note.startsWith('Chegirma')) return { title: "Chegirma o'zgartirildi", detail: body, reason, tone: 'warning' };
+  return { title: 'Izoh', detail: note || undefined };
+}
 
 export default function OrderDetailPage() {
   const { uuid = '' } = useParams();
@@ -87,19 +108,23 @@ export default function OrderDetailPage() {
           <Section title="Holatlar tarixi">
             {order.status_history.length === 0 && <p className="py-3 text-sm text-muted-foreground">Tarix yozilmagan.</p>}
             <ol className="space-y-4 py-3">
-              {[...order.status_history].reverse().map((h, i) => (
-                <li key={i} className="relative pl-5">
-                  <span className="absolute left-0 top-1.5 size-2 rounded-full bg-primary" />
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="font-medium">{h.from_status ? `${orderStatusLabel(h.from_status)} → ` : ''}{orderStatusLabel(h.to_status)}</span>
-                    <span className="text-xs text-muted-foreground">{formatDateTime(h.created_at)}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {ACTOR_LABELS[h.actor_type] ?? h.actor_type}{h.actor_name && ` · ${h.actor_name}`}
-                  </div>
-                  {h.note && <div className="mt-0.5 text-sm">{h.note}</div>}
-                </li>
-              ))}
+              {[...order.status_history].reverse().map((h, i) => {
+                const ev = historyEvent(h);
+                return (
+                  <li key={i} className="relative pl-5">
+                    <span className={`absolute left-0 top-1.5 size-2 rounded-full ${ev.tone === 'warning' ? 'bg-amber-500' : 'bg-primary'}`} />
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="font-medium">{ev.title}{ev.tone === 'warning' && ev.detail ? `: ${ev.detail}` : ''}</span>
+                      <span className="text-xs text-muted-foreground">{formatDateTime(h.created_at)}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {ACTOR_LABELS[h.actor_type] ?? h.actor_type}{h.actor_name && ` · ${h.actor_name}`}
+                    </div>
+                    {ev.reason && <div className="mt-0.5 text-sm">Sabab: {ev.reason}</div>}
+                    {ev.tone !== 'warning' && ev.detail && <div className="mt-0.5 text-sm">{ev.detail}</div>}
+                  </li>
+                );
+              })}
             </ol>
           </Section>
 

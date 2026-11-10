@@ -13,7 +13,7 @@ import { deltaPercent, formatCompact, formatMoney, formatNumber, formatTime } fr
 import { ORDER_STATUSES, ACTIVE_STATUSES, PAYMENT_METHODS, DELIVERY_TYPES } from '@/features/orders/constants';
 import { PARTNER_TYPE_LABELS } from '@/features/partners/constants';
 import { STORAGE_KEYS } from '@/core/config/constants';
-import { useStage } from '@/app/stage';
+import { STAGE, useStage } from '@/app/stage';
 import { dashboardApi } from '../api';
 
 const PERIODS = [
@@ -108,10 +108,10 @@ export default function DashboardPage() {
           delta={t && y ? deltaPercent(t.new_users, y.new_users) : undefined} hint="kechaga nisbatan" />
       </div>
 
-      <div className={`grid gap-4 sm:grid-cols-2 ${stage === 1 ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
+      <div className={`grid gap-4 sm:grid-cols-2 ${stage < STAGE.COURIERS ? 'xl:grid-cols-3' : 'xl:grid-cols-4'}`}>
         <StatCard icon={Activity} tone="warning" label="Faol buyurtmalar" loading={isLoading} value={formatNumber(live?.active_orders)}
           hint={[live?.awaiting_verification ? `${live.awaiting_verification} ta tasdiqlanmoqda` : '', live?.awaiting_payment ? `${live.awaiting_payment} ta to'lov kutmoqda` : ''].filter(Boolean).join(' · ') || undefined} />
-        {stage >= 2 && (
+        {stage >= STAGE.COURIERS && (
           <StatCard icon={Bike} label="Kuryerlar (onlayn)" loading={isLoading} value={`${live?.couriers.online ?? 0} / ${live?.couriers.total ?? 0}`}
             hint={`${live?.couriers.available ?? 0} ta bo'sh`} />
         )}

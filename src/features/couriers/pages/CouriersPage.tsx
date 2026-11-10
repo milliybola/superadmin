@@ -11,7 +11,7 @@ import { Pill } from '@/shared/components/Pill';
 import { useListParams } from '@/shared/hooks/useListParams';
 import { getErrorMessage } from '@/shared/lib/errors';
 import { formatMoney, formatNumber, formatPhone, timeAgo } from '@/shared/lib/format';
-import { useStage } from '@/app/stage';
+import { STAGE, useStage } from '@/app/stage';
 import { couriersApi, type Courier } from '../api';
 import { COURIER_STATUSES, COURIER_TYPES, REVIEW_STATUSES, TRANSPORT_TYPES } from '../constants';
 import { useCouriers, useCouriersSummary } from '../hooks';
@@ -37,7 +37,7 @@ export default function CouriersPage() {
   const [exporting, setExporting] = useState(false);
   const { params, query, setFilter, setPage, setPageSize, setOrdering, reset, hasFilters } = useListParams({ ordering: '-created_at' });
   const { stage } = useStage();
-  const partnerOnly = stage === 1;
+  const partnerOnly = stage < STAGE.COURIERS;
   const f = params.filters;
   const tab = f.tab ?? '';
 

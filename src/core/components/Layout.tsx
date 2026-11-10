@@ -4,7 +4,7 @@ import { LogOut, Sun, Moon, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { STORAGE_KEYS } from '../config/constants';
 import { clearSession } from '../api/client';
 import { visibleNavGroups } from '@/app/navigation';
-import { StageGuard, StageSelect, useStage } from '@/app/stage';
+import { StageBadge, StageGuard, useStage } from '@/app/stage';
 import {
   Sidebar,
   SidebarContent,
@@ -146,7 +146,7 @@ const Layout: React.FC = () => {
           <Separator orientation="vertical" className="h-4" />
           <span className="text-sm font-medium text-muted-foreground">Boshqaruv paneli</span>
           <div className="ml-auto flex items-center gap-2">
-            <StageSelect />
+            <StageBadge />
             <Button variant="ghost" size="icon" onClick={() => applyTheme(theme === 'light' ? 'dark' : 'light')} aria-label="Mavzuni almashtirish">
               {theme === 'light' ? <Moon className="size-4" /> : <Sun className="size-4" />}
             </Button>

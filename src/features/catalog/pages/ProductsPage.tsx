@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, EyeOff, Eye, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Field } from '@/shared/components/Field';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/shared/components/PageHeader';
@@ -13,7 +17,7 @@ import { Pill } from '@/shared/components/Pill';
 import { useListParams } from '@/shared/hooks/useListParams';
 import { formatMoney, formatNumber } from '@/shared/lib/format';
 import { PARTNER_TYPE_LABELS } from '@/features/partners/constants';
-import { getProductsMeta, PRODUCT_STATUS, productHooks, type ProductListItem } from '../api';
+import { getProductsMeta, PRODUCT_STATUS, productHooks, saveProductFiscal, type ProductDetail, type ProductListItem } from '../api';
 
 function ProductThumb({ src }: { src: string | null }) {
   return src ? <img src={src} alt="" className="size-10 shrink-0 rounded-lg object-cover" /> : <div className="size-10 shrink-0 rounded-lg bg-muted" />;
@@ -26,6 +30,37 @@ function StatusPill({ p }: { p: ProductListItem }) {
       <Pill tone={s?.tone ?? 'muted'}>{s?.label ?? p.status}</Pill>
       {p.status === 'ACTIVE' && !p.is_active && <Pill tone="muted">Yashirilgan</Pill>}
       {p.status === 'ACTIVE' && p.is_active && !p.is_available && <Pill tone="warning">Tugagan</Pill>}
+    </div>
+  );
+}
+
+/** MXIK (IKPU), qadoq kodi va QQS — onlayn to'lov va fiskal chek uchun majburiy (tasnif.soliq.uz) */
+function FiscalForm({ product }: { product: ProductDetail }) {
+  const qc = useQueryClient();
+  const [mxik, setMxik] = useState(product.fiscal?.mxik_code ?? '');
+  const [pkg, setPkg] = useState(product.fiscal?.package_code ?? '');
+  const [vat, setVat] = useState(String(product.fiscal?.vat_percent ?? 0));
+  const save = useMutation({
+    mutationFn: () => saveProductFiscal(product.uuid, { mxik_code: mxik.trim(), package_code: pkg.trim(), units: product.fiscal?.units ?? null, vat_percent: Number(vat) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['products'] }); toast.success('MXIK saqlandi'); },
+  });
+  const invalid = !/^\d{17}$/.test(mxik.trim()) || !pkg.trim();
+  return (
+    <div>
+      <div className="mb-1 flex items-center gap-2 font-medium">Fiskal ma'lumot (MXIK)
+        {!product.fiscal && <Pill tone="danger">Kiritilmagan</Pill>}</div>
+      <p className="mb-2 text-xs text-muted-foreground">MXIKsiz mahsulot bilan onlayn to'lov va fiskal chek ishlamaydi.</p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label="MXIK (17 raqam)" className="sm:col-span-3"><Input inputMode="numeric" maxLength={17} value={mxik} onChange={(e) => setMxik(e.target.value)} /></Field>
+        <Field label="Qadoq kodi" className="sm:col-span-2"><Input maxLength={20} value={pkg} onChange={(e) => setPkg(e.target.value)} /></Field>
+        <Field label="QQS">
+          <Select value={vat} onValueChange={setVat}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="0">0%</SelectItem><SelectItem value="12">12%</SelectItem></SelectContent>
+          </Select>
+        </Field>
+      </div>
+      <Button size="sm" className="mt-3" disabled={invalid || save.isPending} onClick={() => save.mutate()}>Saqlash</Button>
     </div>
   );
 }
@@ -57,6 +92,7 @@ function ProductSheet({ uuid, onClose }: { uuid: string; onClose: () => void }) 
               {p.barcode && <InfoRow label="Shtrix-kod">{p.barcode}</InfoRow>}
               {p.unit === 'KG' && <InfoRow label="Qadam / minimum">{p.step} / {p.min_quantity} kg</InfoRow>}
             </div>
+            <FiscalForm key={`${p.uuid}-${p.fiscal?.mxik_code ?? ''}`} product={p} />
             {p.packagings.length > 0 && (
               <div><div className="mb-1 font-medium">Qadoqlar</div>
                 {p.packagings.map((x, i) => <div key={i} className="flex justify-between py-1 text-muted-foreground"><span>{x.name} (×{x.multiplier})</span><span>{formatMoney(x.price)}</span></div>)}</div>
@@ -141,6 +177,8 @@ export default function ProductsPage() {
           options={[{ value: 'true', label: 'Mavjud' }, { value: 'false', label: 'Tugagan' }]} />
         <FilterSelect label="Turi" value={f.kind ?? ''} onChange={(v) => setFilter('kind', v)}
           options={[{ value: 'SINGLE', label: 'Oddiy' }, { value: 'SET', label: 'Set' }]} />
+        <FilterSelect label="MXIK" value={f.fiscal_missing ?? ''} onChange={(v) => setFilter('fiscal_missing', v)}
+          options={[{ value: 'true', label: 'Kiritilmagan' }, { value: 'false', label: 'Kiritilgan' }]} />
       </FilterBar>
       <DataTable columns={columns} rows={data?.results} rowKey={(p) => p.uuid} loading={isLoading || isFetching} error={error} onRetry={refetch}
         onRowClick={(p) => setOpen(p.uuid)} ordering={params.ordering} onOrderingChange={setOrdering}

@@ -9,6 +9,7 @@ import { YANDEX_MAPS_API_KEY } from './core/config/constants';
 
 // Sahifalar kerak bo'lganda yuklanadi (Layout ichidagi Suspense ko'rsatadi)
 const DashboardPage = lazy(() => import('./features/dashboard/pages/DashboardPage'));
+const PlatformStatsPage = lazy(() => import('./features/dashboard/pages/PlatformStatsPage'));
 const OrdersPage = lazy(() => import('./features/orders/pages/OrdersPage'));
 const VerificationQueuePage = lazy(() => import('./features/verification/pages/VerificationQueuePage'));
 const OrderDetailPage = lazy(() => import('./features/orders/pages/OrderDetailPage'));
@@ -34,6 +35,9 @@ const MerchantsPage = lazy(() => import('./features/finance/pages/MerchantsPage'
 const AdminsPage = lazy(() => import('./features/system/pages/AdminsPage'));
 const AuditPage = lazy(() => import('./features/system/pages/AuditPage'));
 const DispatchPage = lazy(() => import('./features/system/pages/DispatchPage'));
+const TelegramBotPage = lazy(() => import('./features/system/pages/TelegramBotPage'));
+const ShiftsPage = lazy(() => import('./features/partners/pages/ShiftsPage'));
+const StagesPage = lazy(() => import('./features/system/pages/StagesPage'));
 const SmsPage = lazy(() => import('./features/sms/pages/SmsPage'));
 
 const App: React.FC = () => (
@@ -44,6 +48,7 @@ const App: React.FC = () => (
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<DashboardPage />} />
+            <Route path="stats" element={<PlatformStatsPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="orders/:uuid" element={<OrderDetailPage />} />
             <Route path="verifications" element={<VerificationQueuePage />} />
@@ -69,7 +74,10 @@ const App: React.FC = () => (
             <Route path="admins" element={<AdminsPage />} />
             <Route path="audit" element={<AuditPage />} />
             <Route path="dispatch" element={<DispatchPage />} />
+            <Route path="telegram" element={<TelegramBotPage />} />
+            <Route path="shifts" element={<ShiftsPage />} />
             <Route path="sms" element={<SmsPage />} />
+            <Route path="stages" element={<StagesPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

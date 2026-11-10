@@ -17,7 +17,6 @@ import { Banknote, CheckCircle2, ShoppingBag, XCircle } from 'lucide-react';
 import { filialHooks, partnerHooks, staffHooks, type Filial, type Staff } from '../api';
 import { FILIAL_STATUSES, PARTNER_TYPE_LABELS, STAFF_ROLES } from '../constants';
 import { PartnerFormDialog } from '../components/PartnerFormDialog';
-import { CommissionCard } from '../components/CommissionCard';
 import { FilialDialog, OpeningHoursDialog } from '../components/FilialDialogs';
 import { PasswordDialog, StaffDialog } from '../components/StaffDialogs';
 import { PartnerStatePills } from './PartnersPage';
@@ -166,7 +165,9 @@ export default function PartnerDetailPage() {
                 <InfoRow label="Filiallar">{p.tariff_info.usage.filials} / {p.tariff_info.max_filials ?? '∞'}</InfoRow>
                 {p.tariff_info.allow_dine_in && <InfoRow label="Stollar">{p.tariff_info.usage.tables} / {p.tariff_info.max_tables ?? '∞'}</InfoRow>}
               </Section>
-              <CommissionCard partnerUuid={p.uuid} />
+              <Section title="Komissiya">
+                <p className="py-3 text-sm text-muted-foreground">Komissiya olinmaydi (tarif modeli).</p>
+              </Section>
             </div>
           </div>
         </TabsContent>

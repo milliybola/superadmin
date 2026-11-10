@@ -157,9 +157,6 @@ export const filialsApi = createResource<Filial>(ENDPOINTS.ADMIN.FILIALS);
 export const staffApi = createResource<Staff>(ENDPOINTS.ADMIN.STAFF);
 export const cuisinesApi = createResource<Cuisine>(ENDPOINTS.ADMIN.CUISINES);
 
-export const getCommission = async (uuid: string): Promise<Commission | null> =>
-  (await apiClient.get(`${ENDPOINTS.ADMIN.PARTNERS}${uuid}/commission/`)).data;
-
 export const getOpeningHours = async (filial: string): Promise<OpeningHours> =>
   (await apiClient.get(`${ENDPOINTS.ADMIN.FILIALS}${filial}/opening-hours/`)).data;
 
@@ -167,3 +164,30 @@ export const partnerHooks = createResourceHooks('partners', partnersApi);
 export const filialHooks = createResourceHooks('filials', filialsApi);
 export const staffHooks = createResourceHooks('staff', staffApi);
 export const cuisineHooks = createResourceHooks('cuisines', cuisinesApi);
+
+/** Smena (faqat o'qish): pul hamkor smena hisoboti bilan bir manbadan. `difference` = haqiqiy − kutilgan naqd */
+export interface Shift {
+  uuid: string;
+  partner_uuid: string;
+  partner_name: string;
+  filial_uuid: string | null;
+  filial_name: string | null;
+  status: 'OPEN' | 'CLOSED';
+  opened_at: string;
+  closed_at: string | null;
+  opened_by_name: string;
+  closed_by_name: string | null;
+  opening_balance: string;
+  expected_closing_balance: string;
+  closing_balance: string | null;
+  difference: string | null;
+  total_orders_count: number;
+  total_revenue: string;
+  cash_revenue: string;
+  card_revenue: string;
+  unpaid_orders_count: number;
+  unpaid_total: string;
+}
+
+export const shiftsApi = createResource<Shift>(ENDPOINTS.ADMIN.SHIFTS);
+export const shiftHooks = createResourceHooks('shifts', shiftsApi);

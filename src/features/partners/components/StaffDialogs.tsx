@@ -11,6 +11,7 @@ import { Field, SwitchField } from '@/shared/components/Field';
 import { applyServerErrors } from '@/shared/lib/formErrors';
 import { filialHooks, staffHooks, type Staff } from '../api';
 import { STAFF_ROLES } from '../constants';
+import { STAGE, useStage } from '@/app/stage';
 
 const NONE = '__none__';
 
@@ -29,10 +30,14 @@ export function StaffDialog({ partnerUuid, staff, open, onOpenChange }: {
   partnerUuid: string; staff?: Staff; open: boolean; onOpenChange: (o: boolean) => void;
 }) {
   const { create, update } = staffHooks.useMutations();
+  const { stage } = useStage();
+  // Kassir/ofitsiant — 2-bosqich (POS); 1-bosqichda faqat menejer (backend ham 403 beradi). Mavjud rol saqlanadi.
+  const roles = Object.entries(STAFF_ROLES).filter(([v]) => stage >= STAGE.POS || v === 'manager' || v === staff?.role);
+  const empty: Values = { ...EMPTY, role: stage >= STAGE.POS ? 'waiter' : 'manager' };
   const { data: filials } = filialHooks.useList({ partner: partnerUuid, page_size: 100 });
   const { register, handleSubmit, control, setError, formState: { errors } } = useForm<Values>({
     resolver: zodResolver(schema),
-    values: staff ? { name: staff.name, phone: staff.phone, role: staff.role, password: '', home_filial: staff.home_filial ?? '', is_active: staff.is_active } : EMPTY,
+    values: staff ? { name: staff.name, phone: staff.phone, role: staff.role, password: '', home_filial: staff.home_filial ?? '', is_active: staff.is_active } : empty,
   });
 
   const submit = handleSubmit(async (v) => {
@@ -57,7 +62,7 @@ export function StaffDialog({ partnerUuid, staff, open, onOpenChange }: {
           <Controller control={control} name="role" render={({ field }) => (
             <Select value={field.value} onValueChange={field.onChange}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(STAFF_ROLES).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
+              <SelectContent>{roles.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
             </Select>
           )} />
         </Field>
