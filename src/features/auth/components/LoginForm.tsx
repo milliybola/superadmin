@@ -46,8 +46,9 @@ const LoginForm: React.FC = () => {
     setPhone(formatted);
   };
 
+  /** "+998 (90) 123-45-67" → "998901234567": serverga faqat raqamlar, «+» belgisisiz yuboriladi */
   const cleanPhoneNumber = (formattedPhone: string) => {
-    return formattedPhone.replace(/[^\d+]/g, '');
+    return formattedPhone.replace(/\D/g, '');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +57,7 @@ const LoginForm: React.FC = () => {
     setError(null);
 
     const rawPhone = cleanPhoneNumber(phone);
-    if (rawPhone.length !== 13) {
+    if (rawPhone.length !== 12) {
       setError("Telefon raqami noto'g'ri shakllantirilgan. Misol: +998 (90) 123-45-67");
       setLoading(false);
       return;
