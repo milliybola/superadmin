@@ -25,6 +25,7 @@ const NeighborhoodsPage = lazy(() => import('./features/neighborhoods/pages/Neig
 const CuisinesPage = lazy(() => import('./features/partners/pages/CuisinesPage'));
 const TariffsPage = lazy(() => import('./features/partners/pages/TariffsPage'));
 const CategoriesPage = lazy(() => import('./features/catalog/pages/CategoriesPage'));
+const ImageLibraryPage = lazy(() => import('./features/catalog/pages/ImageLibraryPage'));
 const ProductsPage = lazy(() => import('./features/catalog/pages/ProductsPage'));
 const BannersPage = lazy(() => import('./features/marketing/pages/BannersPage'));
 const PromotionsPage = lazy(() => import('./features/marketing/pages/PromotionsPage'));
@@ -65,6 +66,7 @@ const App: React.FC = () => (
             <Route path="tariffs" element={<TariffsPage />} />
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="products" element={<ProductsPage />} />
+            <Route path="image-library" element={<ImageLibraryPage />} />
             <Route path="banners" element={<BannersPage />} />
             <Route path="promotions" element={<PromotionsPage />} />
             <Route path="broadcast" element={<BroadcastPage />} />

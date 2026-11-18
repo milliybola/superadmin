@@ -15,6 +15,16 @@ export interface Category {
   created_at: string;
 }
 
+export interface LibraryImage {
+  uuid: string;
+  name: string;
+  keywords: string;
+  image: string;
+  partner_type: 'ALL' | 'RESTAURANT' | 'SHOP';
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface ProductListItem {
   uuid: string;
   name: string;
@@ -59,12 +69,17 @@ export const saveProductFiscal = async (uuid: string, body: ProductFiscal): Prom
   (await apiClient.post(`${ENDPOINTS.ADMIN.PRODUCTS}${uuid}/fiscal/`, body)).data;
 
 export const categoriesApi = createResource<Category>(ENDPOINTS.ADMIN.CATEGORIES);
+export const libraryApi = createResource<LibraryImage>(ENDPOINTS.ADMIN.IMAGE_LIBRARY);
+/** Barcha rasmsiz mahsulotlarga kutubxonadan mos rasm biriktirish */
+export const applyLibrary = async (): Promise<{ attached: number }> =>
+  (await apiClient.post(`${ENDPOINTS.ADMIN.IMAGE_LIBRARY}apply/`)).data?.data ?? { attached: 0 };
 export const productsApi = createResource<ProductListItem, ProductDetail>(ENDPOINTS.ADMIN.PRODUCTS);
 
 export const getProductsMeta = async (): Promise<{ status_counts: Record<string, number> }> =>
   (await apiClient.get(`${ENDPOINTS.ADMIN.PRODUCTS}meta/`)).data;
 
 export const categoryHooks = createResourceHooks('categories', categoriesApi);
+export const libraryHooks = createResourceHooks('image-library', libraryApi);
 export const productHooks = createResourceHooks('products', productsApi);
 
 export const PRODUCT_STATUS: Record<string, { label: string; tone: 'warning' | 'success' | 'danger' }> = {

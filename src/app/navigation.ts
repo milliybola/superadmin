@@ -1,5 +1,6 @@
 import {
-  BadgeDollarSign, Bike, BookOpen, Banknote, Bot, Map, ChefHat, CreditCard, FileBarChart, History, Image, LandPlot, LayoutDashboard, MapPin, Megaphone, MessageSquareText,
+  BadgeDollarSign, Bike, BookOpen, Banknote, Bot, Map, ChefHat, CreditCard, FileBarChart, History, Image,
+  Images, LandPlot, LayoutDashboard, MapPin, Megaphone, MessageSquareText,
   Layers, Package, Percent, PhoneCall, Radio, ShieldCheck, ShoppingBag, Store, TrendingUp, Users, Wallet, type LucideIcon,
 } from 'lucide-react';
 import { STAGE } from './stageLevels';
@@ -56,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/categories', label: 'Kategoriyalar', icon: BookOpen, stage: STAGE.BASE },
       { to: '/products', label: 'Mahsulotlar', icon: Package, stage: STAGE.BASE },
+      { to: '/image-library', label: 'Default rasmlar', icon: Images, stage: STAGE.BASE },
     ],
   },
   {

@@ -53,6 +53,7 @@ export const ENDPOINTS = {
     CUISINES: 'superadmin/cuisines/',
     TARIFFS: 'superadmin/tariffs/',
     CATEGORIES: 'superadmin/categories/',
+    IMAGE_LIBRARY: 'superadmin/image-library/',
     PRODUCTS: 'superadmin/products/',
     BANNERS: 'superadmin/banners/',
     PROMOTIONS: 'superadmin/promotions/',
