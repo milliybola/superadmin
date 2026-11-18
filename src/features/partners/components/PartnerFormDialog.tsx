@@ -25,6 +25,7 @@ const schema = z.object({
   address: z.string().trim().min(3, 'Manzilni kiriting').max(100),
   description: z.string().max(2000),
   email: z.union([z.literal(''), z.string().trim().email("Email noto'g'ri")]),
+  contact_phone: z.union([z.literal(''), z.string().trim().regex(/^\+?998\d{9}$/, "Masalan +998901234567")]),
   owner_phone: z.string().trim(),
   location_lat: z.string().trim().refine((v) => v !== '' && Math.abs(Number(v)) <= 90, "Kenglik -90..90 oralig'ida"),
   location_long: z.string().trim().refine((v) => v !== '' && Math.abs(Number(v)) <= 180, "Uzunlik -180..180 oralig'ida"),
@@ -43,14 +44,14 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 
 const EMPTY: Values = {
-  name: '', partner_type: 'RESTAURANT', phone: '+998', password: '', address: '', description: '', email: '', owner_phone: '',
+  name: '', partner_type: 'RESTAURANT', phone: '+998', password: '', address: '', description: '', email: '', contact_phone: '', owner_phone: '',
   location_lat: '41.311081', location_long: '69.240562', delivery_fee: '0', min_order_amount: '0', max_order_amount: '',
   free_delivery_threshold: '', delivery_time_minutes: '30', prep_deadline_minutes: '15', max_active_orders: '3', telegram_group_id: '', is_active: true, tariff: '', cuisine_uuids: [],
 };
 
 const fromPartner = (p: PartnerDetail): Values => ({
   name: p.name, partner_type: p.partner_type, phone: p.phone, password: '', address: p.address, description: p.description ?? '',
-  email: p.email ?? '', owner_phone: p.owner?.phone ?? '', location_lat: String(p.location_lat), location_long: String(p.location_long),
+  email: p.email ?? '', contact_phone: p.contact_phone ?? '', owner_phone: p.owner?.phone ?? '', location_lat: String(p.location_lat), location_long: String(p.location_long),
   delivery_fee: String(p.delivery_fee), min_order_amount: String(p.min_order_amount), max_order_amount: p.max_order_amount?.toString() ?? '',
   free_delivery_threshold: p.free_delivery_threshold?.toString() ?? '', delivery_time_minutes: String(p.delivery_time_minutes), prep_deadline_minutes: String(p.prep_deadline_minutes ?? 15), max_active_orders: String(p.max_active_orders ?? 3),
   telegram_group_id: p.telegram_group_id ?? '', is_active: p.is_active, tariff: p.tariff?.uuid ?? '', cuisine_uuids: p.cuisines.map((c) => c.uuid),
@@ -132,6 +133,7 @@ export function PartnerFormDialog({ open, onOpenChange, partner, onSaved }: {
           )} />
         </Field>
         <Field label="Telefon (login)" required error={err('phone')}><Input {...register('phone')} placeholder="+998901234567" /></Field>
+        <Field label="Mijozlar uchun telefon" error={err('contact_phone')} hint="Ixtiyoriy. Login raqamidan alohida — mijozlarga shu ko'rinadi"><Input inputMode="tel" {...register('contact_phone')} placeholder="+998901234567" /></Field>
         {!isEdit && <Field label="Parol" required error={err('password')} hint="Kamida 6 belgi"><Input type="password" autoComplete="new-password" {...register('password')} /></Field>}
         <Field label="Manzil" required error={err('address')} className="sm:col-span-2"><Input {...register('address')} /></Field>
         <Field label="Tavsif" error={err('description')} className="sm:col-span-2"><Textarea rows={3} {...register('description')} /></Field>

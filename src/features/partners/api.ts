@@ -22,6 +22,8 @@ export interface PartnerListItem {
   name: string;
   partner_type: 'RESTAURANT' | 'SHOP';
   phone: string;
+  /** Mijozlar uchun bog'lanish telefoni (login raqamidan mustaqil; bo'sh — mijozga ko'rsatilmaydi) */
+  contact_phone?: string;
   address: string;
   logo: string | null;
   rating: number;
