@@ -71,6 +71,7 @@ export const ENDPOINTS = {
     SMS_DEVICES: 'superadmin/sms/devices/',
     SMS_OUTBOX: 'superadmin/sms/outbox/',
     VERIFICATIONS: 'superadmin/verifications/',
+    VERIFICATION_SETTINGS: 'superadmin/verification-settings/',
     CUSTOMERS: 'superadmin/customers/',
   },
 };

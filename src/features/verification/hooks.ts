@@ -8,6 +8,7 @@ export const verificationKeys = {
   all: ['verifications'] as const,
   list: (scope: 'pending' | 'history') => ['verifications', 'list', scope] as const,
   customer: (uuid: string) => ['verifications', 'customer', uuid] as const,
+  settings: ['verifications', 'settings'] as const,
 };
 
 /** Navbat: eng eskisi birinchi (backend tartiblaydi). Tab ko'rinib turganda har ~10 soniyada yangilanadi. */
@@ -71,6 +72,33 @@ export function useVerificationAlerts(): number {
   }, [count]);
 
   return count;
+}
+
+/** Navbat yoqiq/o'chiq holati (tugma uchun) — ochiq sahifada har 30 soniyada yangilanadi */
+export const useVerificationSettings = () =>
+  useQuery({
+    queryKey: verificationKeys.settings,
+    queryFn: verificationApi.settings,
+    refetchInterval: 30_000,
+  });
+
+export function useToggleVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (enabled: boolean) => verificationApi.setEnabled(enabled),
+    onSuccess: (data) => {
+      qc.setQueryData(verificationKeys.settings, { enabled: data.enabled });
+      qc.invalidateQueries({ queryKey: verificationKeys.all });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      toast.success(
+        data.enabled
+          ? 'Tasdiqlash navbati yoqildi — yangi mijozlar buyurtmalari operatorni kutadi'
+          : data.released > 0
+            ? `Navbat o'chirildi — kutayotgan ${data.released} ta buyurtma hamkorlarga yuborildi`
+            : "Tasdiqlash navbati o'chirildi",
+      );
+    },
+  });
 }
 
 export function useVerificationActions() {

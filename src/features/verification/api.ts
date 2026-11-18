@@ -72,10 +72,21 @@ export interface CustomerVerification {
 
 export type CustomerAction = 'trust' | 'revoke' | 'block' | 'unblock';
 
+export interface VerificationSettings {
+  enabled: boolean;
+}
+
 const base = ENDPOINTS.ADMIN.VERIFICATIONS;
 const customers = ENDPOINTS.ADMIN.CUSTOMERS;
 
 export const verificationApi = {
+  settings: async (): Promise<VerificationSettings> =>
+    (await apiClient.get(ENDPOINTS.ADMIN.VERIFICATION_SETTINGS)).data,
+
+  /** O'chirilganda backend navbatdagi buyurtmalarni hamkorlarga yuboradi — `released` soni qaytadi */
+  setEnabled: async (enabled: boolean): Promise<VerificationSettings & { released: number }> =>
+    (await apiClient.patch(ENDPOINTS.ADMIN.VERIFICATION_SETTINGS, { enabled })).data,
+
   list: async (scope: 'pending' | 'history'): Promise<VerificationItem[]> =>
     (await apiClient.get(base, { params: { scope } })).data.results,
 
