@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Map as YandexMap, Placemark } from '@pbe/react-yandex-maps';
 import { Bike, Ban, MapPin, Repeat } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -173,6 +174,21 @@ export default function OrderDetailPage() {
 
           <Section title="Yetkazish va to'lov">
             {order.address && <InfoRow label="Manzil"><span className="inline-flex items-start gap-1"><MapPin className="mt-0.5 size-3.5 shrink-0" />{order.address}</span></InfoRow>}
+            {order.latitude != null && order.longitude != null && (
+              <div className="py-3">
+                <div className="overflow-hidden rounded-lg border">
+                  <YandexMap state={{ center: [order.latitude, order.longitude], zoom: 16 }} width="100%" height="240px">
+                    <Placemark geometry={[order.latitude, order.longitude]} options={{ preset: 'islands#redHomeIcon' }} />
+                  </YandexMap>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>{order.latitude.toFixed(6)}, {order.longitude.toFixed(6)}</span>
+                  <a className="text-primary hover:underline" target="_blank" rel="noreferrer"
+                    href={`https://yandex.com/maps/?pt=${order.longitude},${order.latitude}&z=17`}>Yandex xaritada ochish</a>
+                </div>
+              </div>
+            )}
+            {order.delivery_type === 'DELIVERY' && order.latitude == null && <InfoRow label="Lokatsiya">Mijoz lokatsiya yubormagan</InfoRow>}
             {order.table_number && <InfoRow label="Stol">{order.table_number}</InfoRow>}
             <InfoRow label="To'lov usuli">
               {order.payment_breakdown && order.payment_breakdown.length > 1 ? (
