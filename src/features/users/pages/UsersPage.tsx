@@ -4,10 +4,19 @@ import { DataTable, type Column } from '@/shared/components/DataTable';
 import { DateField, FilterBar, FilterSelect, SearchInput } from '@/shared/components/Filters';
 import { useListParams } from '@/shared/hooks/useListParams';
 import { formatDate, formatMoney, formatNumber, formatPhone, timeAgo } from '@/shared/lib/format';
+import { Pill, type Tone } from '@/shared/components/Pill';
 import { useUsers } from '../hooks';
 import { ROLE_LABELS } from '../constants';
 import { UserFlags } from '../components/UserFlags';
 import type { AdminUser } from '../api';
+
+/** Qanday kirgani: telegram_id bo'lsa — Telegram, apple: belgisi — Apple, qolgani — SMS */
+const loginKind = (u: AdminUser): { label: string; tone: Tone } =>
+  u.telegram_id
+    ? { label: 'Telegram', tone: 'info' }
+    : u.phone_number?.startsWith('apple:')
+      ? { label: 'Apple', tone: 'muted' }
+      : { label: 'SMS', tone: 'success' };
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -26,6 +35,13 @@ export default function UsersPage() {
       ),
     },
     { key: 'role', header: 'Rol', hideBelow: 'md', cell: (u) => ROLE_LABELS[u.role] ?? u.role },
+    {
+      key: 'login', header: 'Kirish',
+      cell: (u) => {
+        const k = loginKind(u);
+        return <Pill tone={k.tone}>{k.label}</Pill>;
+      },
+    },
     { key: 'state', header: 'Holat', cell: (u) => <UserFlags u={u} /> },
     { key: 'orders', header: 'Buyurtmalar', sortKey: 'orders_count', align: 'right', cell: (u) => <span className="tabular-nums">{formatNumber(u.orders_count)}</span> },
     { key: 'spent', header: 'Xarid summasi', sortKey: 'total_spent', align: 'right', hideBelow: 'lg', cell: (u) => <span className="tabular-nums">{formatMoney(u.total_spent)}</span> },
