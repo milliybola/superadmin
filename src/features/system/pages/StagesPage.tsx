@@ -13,6 +13,7 @@ import { formatDateTime } from '@/shared/lib/format';
 import { cn } from '@/lib/utils';
 import { NAV_GROUPS } from '@/app/navigation';
 import { PLATFORM_STAGE_KEY, STAGE, STAGE_OPTIONS, platformStageApi, useStage, type Stage } from '@/app/stage';
+import { CourierTariffCard } from '../components/CourierTariffCard';
 import { DiscountLimitCard } from '../components/DiscountLimitCard';
 
 /**
@@ -149,6 +150,8 @@ export default function StagesPage() {
       )}
 
       {stage >= STAGE.POS && <DiscountLimitCard />}
+      {/* Global kuryer tarifi — 3-bosqichni yoqishdan OLDIN sozlanadi, shuning uchun har doim ko'rinadi */}
+      <CourierTariffCard />
 
       <ConfirmDialog
         open={target !== null}

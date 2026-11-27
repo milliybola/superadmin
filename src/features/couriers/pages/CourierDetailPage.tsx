@@ -31,12 +31,18 @@ function EditDialog({ courier, onClose }: { courier: CourierDetail; onClose: () 
   const [lastName, setLast] = useState(rest.join(' '));
   const [city, setCity] = useState(courier.city);
   const [type, setType] = useState(courier.courier_type);
+  const [cashLimit, setCashLimit] = useState(courier.cash_limit == null ? '' : String(Number(courier.cash_limit)));
+  const limitBad = cashLimit.trim() !== '' && (Number.isNaN(Number(cashLimit)) || Number(cashLimit) < 0);
   return (
     <FormDialog open onOpenChange={onClose} title="Kuryer ma'lumotlari" submitting={update.isPending}
       onSubmit={(e) => {
         e.preventDefault();
-        if (!firstName.trim()) return;
-        update.mutate({ first_name: firstName.trim(), last_name: lastName.trim(), city: city.trim(), courier_type: type }, { onSuccess: onClose });
+        if (!firstName.trim() || limitBad) return;
+        update.mutate({
+          first_name: firstName.trim(), last_name: lastName.trim(), city: city.trim(), courier_type: type,
+          // Bo'sh — platforma umumiy chegarasi (Bosqichlar → MilliyGo kuryer tarifi)
+          cash_limit: cashLimit.trim() === '' ? null : Number(cashLimit),
+        }, { onSuccess: onClose });
       }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Ism" required><Input value={firstName} onChange={(e) => setFirst(e.target.value)} /></Field>
@@ -49,6 +55,12 @@ function EditDialog({ courier, onClose }: { courier: CourierDetail; onClose: () 
           <SelectContent>{Object.entries(COURIER_TYPES).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent>
         </Select>
       </Field>
+      {type === 'PLATFORM' && (
+        <Field label="Naqd chegarasi (so'm)" error={limitBad ? 'Musbat son kiriting' : undefined}
+          hint={"Kuryer bundan katta naqd buyurtmani olmaydi. Bo'sh — umumiy chegara" + (courier.effective_cash_limit != null && courier.cash_limit == null ? ` (${formatMoney(courier.effective_cash_limit)})` : '')}>
+          <Input inputMode="decimal" value={cashLimit} placeholder="Umumiy chegara" onChange={(e) => setCashLimit(e.target.value)} />
+        </Field>
+      )}
     </FormDialog>
   );
 }
@@ -72,6 +84,11 @@ function Overview({ c }: { c: CourierDetail }) {
           <InfoRow label="Shahar">{c.city || '—'}</InfoRow>
           <InfoRow label="Telegram ID">{c.telegram_id ?? <span className="text-amber-600">Bog'lanmagan (Telegram xabarlari bormaydi)</span>}</InfoRow>
           <InfoRow label="Turi">{COURIER_TYPES[c.courier_type]}{c.partner && ` · ${c.partner.name}`}</InfoRow>
+          {c.effective_cash_limit != null && (
+            <InfoRow label="Naqd chegarasi">
+              {formatMoney(c.effective_cash_limit)}{c.cash_limit == null && <span className="text-muted-foreground"> · umumiy</span>}
+            </InfoRow>
+          )}
           <InfoRow label="Reyting"><span className="inline-flex items-center gap-1"><Star className="size-3.5 fill-amber-400 text-amber-400" />{c.rating.toFixed(2)} ({c.stats.ratings_count})</span></InfoRow>
           <InfoRow label="Ro'yxatdan o'tgan">{formatDateTime(c.created_at)}</InfoRow>
         </Section>

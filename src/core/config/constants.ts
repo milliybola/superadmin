@@ -66,6 +66,7 @@ export const ENDPOINTS = {
     DISPATCH: 'superadmin/dispatch-config/',
     PLATFORM_STAGE: 'superadmin/platform-stage/',
     PLATFORM_DISCOUNT_LIMIT: 'superadmin/platform-discount-limit/',
+    COURIER_TARIFF: 'superadmin/courier-tariff/',
     SMS_STATUS: 'superadmin/sms/status/',
     SMS_CONFIG: 'superadmin/sms/config/',
     SMS_TEST: 'superadmin/sms/test/',

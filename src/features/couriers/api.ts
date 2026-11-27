@@ -59,6 +59,10 @@ export interface PeriodStats {
 }
 
 export interface CourierDetail extends Courier {
+  /** Kuryerning naqd buyurtma chegarasi; null — platforma umumiysi */
+  cash_limit?: string | number | null;
+  /** Amaldagi chegara (MilliyGo kuryeri); hamkor kuryerida null */
+  effective_cash_limit?: number | null;
   review_note: string;
   reviewed_at: string | null;
   reviewed_by_name: string;
@@ -163,7 +167,7 @@ export const couriersApi = {
   summary: async (params?: CourierScope): Promise<CouriersSummary> => (await apiClient.get(`${BASE}summary/`, { params })).data,
   map: async (params?: CourierScope): Promise<CouriersMap> => (await apiClient.get(`${BASE}map/`, { params })).data,
 
-  update: async (uuid: string, body: Partial<Pick<Courier, 'city' | 'courier_type'> & { first_name: string; last_name: string }>) =>
+  update: async (uuid: string, body: Partial<Pick<Courier, 'city' | 'courier_type'> & { first_name: string; last_name: string; cash_limit: number | null }>) =>
     (await apiClient.patch(`${BASE}${uuid}/`, body)).data as CourierDetail,
 
   approve: async (uuid: string, force = false): Promise<CourierDetail> =>
